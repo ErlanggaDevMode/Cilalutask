@@ -1,0 +1,6 @@
+{
+  "name": "CILULATAKS - Manajemen Operasional & Tugas",
+  "description": "Aplikasi manajemen operasional kerja terpadu: dashboard ringkasan eksekutif, pelacakan tugas divisi, pusat standar operasional (SOP), dan analitik kinerja tim.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
