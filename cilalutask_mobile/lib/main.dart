@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
+import 'screens/auth/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'state/app_state_controller.dart';
 import 'state/app_state_scope.dart';
@@ -20,11 +21,18 @@ class CilalutaskApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppStateScope(
       controller: controller,
-      child: MaterialApp(
-        title: 'CILULATAKS Mobile',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        home: const MainNavigationScreen(),
+      child: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          return MaterialApp(
+            title: 'CILULATAKS Mobile',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            home: controller.isAuthenticated
+                ? const MainNavigationScreen()
+                : const LoginScreen(),
+          );
+        },
       ),
     );
   }

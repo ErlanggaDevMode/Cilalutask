@@ -6,53 +6,54 @@ Dibangun dengan arsitektur **Feature-First / Clean Architecture**, Flutter 3.x, 
 
 ---
 
-## 📱 Fitur Utama
+## 📱 Fitur Utama & Otoritas Akses (RBAC)
 
-1. **Beranda (Home)**:
-   - Kartu sapaan personal Manager dengan progress target kuartal (88%) dan efisiensi tim (94%).
-   - Bar Aksi Cepat (Buat Tugas Baru, Unggah SOP, Kirim Pengumuman Tim).
-   - Ringkasan Beban Kerja 2x2 Grid (Tugas Aktif, Selesai, Menunggu Review, Mendekati Batas).
-   - Daftar tugas mendekati batas waktu dengan progress bar real-time.
-   - Feed aktivitas tim terkini.
+### 🔐 1. Halaman Masuk Multi-Peran (Login Screen)
+- **Pemilihan Peran Interaktif**: Pilihan masuk sebagai **Admin (Manager)** atau **User (Karyawan)**.
+- **Dukungan Karyawan Lengkap**: Dapat memilih akun karyawan spesifik (Kevin Maulana, Budi Santoso, Nadia Salsabila, Rina Wulandari).
+- **Tombol Demo 1-Klik**: Masuk instan untuk pengujian demo cepat (`Demo Admin`, `Demo User IT`, `Demo User Ops`).
+- **Ganti Akun & Keluar**: Akses ganti akun kapan saja melalui avatar profil di App Bar.
 
-2. **Manajemen Tugas (Tasks)**:
-   - Pencarian real-time (judul, deskripsi, nama PIC).
-   - Filter divisi (Semua, Operasional, IT & Tech, Pemasaran, Finance).
-   - Filter karyawan/PIC dengan avatar.
-   - Segmented status tab: Belum Dimulai, Dalam Proses, Selesai.
-   - Kartu tugas interaktif dengan checklist progress bar.
-   - Tombol aksi: Update Progres & Review Persetujuan.
-   - Floating Action Button (+ Tugas).
+### 🛡️ 2. Aturan Hak Akses (Role-Based Access Control)
+- **User (Karyawan)**:
+  - **Hanya User** yang dapat memperbarui progres tugas (`Update Progres`), mencentang subtask checklist, dan mengajukan review tugas.
+  - Membaca dan mengonfirmasi kepatuhan SOP digital.
+  - Berkomunikasi via Saluran Chat Tim dan Pesan Langsung (DM).
+  - *Dibatasi*: Tidak dapat memberikan/membuat tugas baru dan tidak dapat mereview/menyetujui tugas.
+- **Admin (Manager)**:
+  - **Hanya Admin** yang dapat mereview dan memberikan persetujuan tugas (`Review & Persetujuan`).
+  - **Hanya Admin** yang dapat membuat tugas baru (`Buat Tugas Baru` / `+ Tugas`) dan mendelegasikannya kepada karyawan.
+  - Mengunggah & memperbarui dokumen SOP baru.
+  - Mengirimkan siaran pengumuman (Broadcast) ke seluruh divisi.
 
-3. **Pusat SOP (Knowledge Base)**:
-   - Pencarian SOP dan filter kategori departemen.
-   - Banner Kelola Dokumen untuk Manager.
-   - Kartu peringatan merah untuk SOP darurat yang wajib dibaca & dikonfirmasi.
-   - Direktori dokumen lengkap dengan toggle bookmark, rasio kepatuhan tim, dan pembaca dokumen interaktif.
+### 📑 3. Navigasi 6 Tab Terpadu
+1. **Beranda (Home)**: Metrik efisiensi tim, aksi cepat adaptif peran, dan daftar tugas mendesak.
+2. **Tugas (Tasks)**: Manajemen tugas dengan filter divisi, status, dan aksi terpisah sesuai peran (User: Update Progres, Admin: Review & + Tugas).
+3. **Pusat SOP (Knowledge Base)**: Direktori dokumen SOP, filter kepatuhan, dan pembaca dokumen interaktif.
+4. **Kinerja & Analisis (Reports)**: Laporan analitik, leaderboard karyawan, dan rekomendasi produktivitas.
+5. **💬 Tab Chat (Kolaborasi Tim)** *(Tab Baru di antara Laporan & Tim)*:
+   - **Saluran Tim (Channels)**: `#umum`, `#operasional-gudang`, `#it-tech-core`, `#pemasaran-kreatif`, `#keuangan-pajak`.
+   - **Pesan Langsung (Direct Messages)**: Chat 1-on-1 dengan seluruh karyawan.
+   - **Fitur Chat**: Bubble obrolan modern, avatar, role badge, timestamp, indikator belum dibaca, dan input pesan responsif.
+6. **Tim & Notifikasi (Team)**: Daftar anggota divisi dengan aksi kontak/chat dan riwayat notifikasi real-time.
 
-4. **Kinerja & Analisis (Reports)**:
-   - Selector periode (Bulan Ini, Minggu Ini, Kuartal 1, Tahun Ini).
-   - Hero metric card: Tingkat Penyelesaian 92.4% (+4.2%).
-   - Sub-metrik: Ketepatan waktu (88% on-time) dan rata-rata durasi (1.8 hari).
-   - Visualisasi produktivitas divisi (Operasional, Finance, IT, Pemasaran).
-   - Leaderboard kinerja karyawan (#1 sampai #4) dengan status tag dan skor.
-   - Rekomendasi beban kerja otomatis (AI note) dengan aksi penyeimbangan tugas.
+### 🔔 4. Sistem Notifikasi Mobile Lancar & Real-time
+- **In-App Heads-Up Banner**: Banner mengambang meluncur dari atas dengan animasi halus (`SlideTransition` + `FadeTransition`), feedback getaran haptik, geser ke atas untuk tutup, dan ketuk untuk langsung membuka tugas/chat terkait.
+- **Pusat Notifikasi Instan (Sheet)**: Mengetuk lonceng di App Bar langsung memunculkan sheet notifikasi live dengan filter kategori dan indikator real-time.
+- **Event Dispatcher Real-time**: Otomatis memicu notifikasi saat tugas diterbitkan, progres subtask diperbarui, tugas disetujui, SOP diunggah, atau pesan chat dikirim.
+- **Simulasi Interaktif Rekan Tim**: Tombol uji coba instan `Uji Real-time (+)` untuk menguji kelancaran notifikasi secara langsung.
 
-5. **Tim & Notifikasi (Team)**:
-   - Sub-tab switcher: Anggota & Notifikasi.
-   - Profil manager highlight.
-   - Daftar seluruh anggota tim dengan tombol aksi langsung "Beri Tugas".
-   - Notifikasi riwayat terintegrasi dengan penanda belum dibaca dan fitur "Tandai Semua Dibaca".
-
-6. **Interactive Bottom Sheets & Modals**:
-   - `CreateTaskBottomSheet`: Form pembuatan tugas baru + checklist subtask dinamis.
-   - `UpdateProgressBottomSheet`: Checklist subtask interaktif dengan auto-recalculated percentage.
-   - `ReviewTaskBottomSheet`: Rincian tugas untuk persetujuan manajerial.
-   - `SopDetailBottomSheet`: Reader SOP berstruktur dengan tombol verifikasi kepatuhan digital.
-   - `UploadSopBottomSheet`: Form pengunggahan dan penerbitan SOP baru.
-   - `ExportReportBottomSheet`: Pilihan format ekspor (PDF Eksekutif, Excel XLSX, CSV).
-   - `BroadcastBottomSheet`: Siaran pengumuman per divisi dengan log instan ke feed aktivitas.
-   - `ProfileBottomSheet`: Profil pengguna & metrik efisiensi.
+### 🗂️ 5. Interactive Bottom Sheets & Modals
+- `InAppNotificationBanner`: Banner melayang heads-up dengan auto-dismiss 4 detik.
+- `NotificationCenterBottomSheet`: Pusat kontrol notifikasi cepat dengan filter kategori.
+- `CreateTaskBottomSheet`: Form pembuatan tugas baru + checklist subtask dinamis.
+- `UpdateProgressBottomSheet`: Checklist subtask interaktif dengan auto-recalculated percentage.
+- `ReviewTaskBottomSheet`: Rincian tugas untuk persetujuan manajerial.
+- `SopDetailBottomSheet`: Reader SOP berstruktur dengan tombol verifikasi kepatuhan digital.
+- `UploadSopBottomSheet`: Form pengunggahan dan penerbitan SOP baru.
+- `ExportReportBottomSheet`: Pilihan format ekspor (PDF Eksekutif, Excel XLSX, CSV).
+- `BroadcastBottomSheet`: Siaran pengumuman per divisi dengan log instan ke feed aktivitas.
+- `ProfileBottomSheet`: Profil pengguna, otoritas akun, & tombol keluar/ganti akun.
 
 ---
 

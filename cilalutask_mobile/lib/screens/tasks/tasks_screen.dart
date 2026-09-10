@@ -493,66 +493,65 @@ class _TasksScreenState extends State<TasksScreen> {
                       ),
                       const SizedBox(height: 12),
 
-                      // Action Buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                UpdateProgressBottomSheet.show(
-                                  context,
-                                  task: task,
-                                  onSaveProgress: (id, subtasks, pct) {
-                                    state.saveProgress(id, subtasks, pct);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Progres tugas berhasil diperbarui!'),
-                                        backgroundColor: AppColors.primaryDark,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                              icon: const Icon(Icons.refresh_rounded, size: 14),
-                              label: const Text('Update Progres'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
+                      // Action Buttons (RBAC: Only User can Update Progres, Only Admin can Review)
+                      if (state.isUser)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              UpdateProgressBottomSheet.show(
+                                context,
+                                task: task,
+                                onSaveProgress: (id, subtasks, pct) {
+                                  state.saveProgress(id, subtasks, pct);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Progres tugas berhasil diperbarui!'),
+                                      backgroundColor: AppColors.primaryDark,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Update Progres Tugas'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                ReviewTaskBottomSheet.show(
-                                  context,
-                                  task: task,
-                                  onApproveTask: (id) {
-                                    state.approveTask(id);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Tugas telah disetujui & ditandai selesai!'),
-                                        backgroundColor: AppColors.primaryDark,
-                                        behavior: SnackBarBehavior.floating,
-                                      ),
-                                    );
-                                  },
-                                );
-                              },
-                              icon: const Icon(Icons.assignment_turned_in_outlined, size: 14),
-                              label: const Text('Review'),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: const BorderSide(color: AppColors.primaryBorder),
-                                backgroundColor: AppColors.primaryLight.withOpacity(0.4),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
+                        )
+                      else if (state.isAdmin)
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              ReviewTaskBottomSheet.show(
+                                context,
+                                task: task,
+                                onApproveTask: (id) {
+                                  state.approveTask(id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Tugas telah disetujui & ditandai selesai!'),
+                                      backgroundColor: AppColors.primaryDark,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                            icon: const Icon(Icons.assignment_turned_in_outlined, size: 16),
+                            label: const Text('Review & Persetujuan'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primaryDark,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 );
@@ -561,37 +560,38 @@ class _TasksScreenState extends State<TasksScreen> {
           ],
         ),
 
-        // 6. Floating Action Button (+ Tugas)
-        Positioned(
-          right: 16,
-          bottom: 16,
-          child: FloatingActionButton.extended(
-            onPressed: () {
-              CreateTaskBottomSheet.show(
-                context,
-                employees: state.employees,
-                onCreateTask: (newTask) {
-                  state.createTask(newTask);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
-                      backgroundColor: AppColors.primaryDark,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              );
-            },
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            icon: const Icon(Icons.add_rounded, size: 20),
-            label: const Text(
-              'Tugas',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+        // 6. Floating Action Button (+ Tugas) - Only Admin can assign/create tasks
+        if (state.isAdmin)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () {
+                CreateTaskBottomSheet.show(
+                  context,
+                  employees: state.employees,
+                  onCreateTask: (newTask) {
+                    state.createTask(newTask);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
+                        backgroundColor: AppColors.primaryDark,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                );
+              },
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 4,
+              icon: const Icon(Icons.add_rounded, size: 20),
+              label: const Text(
+                'Tugas',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
             ),
           ),
-        ),
       ],
     );
   }

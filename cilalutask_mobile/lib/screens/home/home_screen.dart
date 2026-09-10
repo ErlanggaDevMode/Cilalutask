@@ -7,6 +7,7 @@ import '../../widgets/modals/create_task_bottom_sheet.dart';
 import '../../widgets/modals/upload_sop_bottom_sheet.dart';
 import '../../widgets/modals/broadcast_bottom_sheet.dart';
 import '../../widgets/modals/update_progress_bottom_sheet.dart';
+import '../../widgets/modals/review_task_bottom_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -210,93 +211,148 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        Row(
-          children: [
-            // Buat Tugas Baru
-            Expanded(
-              flex: 5,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  CreateTaskBottomSheet.show(
+        if (state.isAdmin)
+          Row(
+            children: [
+              // Buat Tugas Baru (Admin Only)
+              Expanded(
+                flex: 5,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    CreateTaskBottomSheet.show(
+                      context,
+                      employees: state.employees,
+                      onCreateTask: (newTask) {
+                        state.createTask(newTask);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
+                            backgroundColor: AppColors.primaryDark,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Buat Tugas Baru'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Unggah SOP
+              Expanded(
+                flex: 4,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    UploadSopBottomSheet.show(
+                      context,
+                      onAddSop: (newSop) {
+                        state.addSop(newSop);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Dokumen "${newSop.title}" berhasil diterbitkan!'),
+                            backgroundColor: AppColors.primaryDark,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  icon: const Icon(Icons.file_upload_outlined, size: 18, color: AppColors.primary),
+                  label: const Text('Unggah SOP'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: AppColors.border),
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // Megaphone Broadcast
+              InkWell(
+                onTap: () {
+                  BroadcastBottomSheet.show(
                     context,
-                    employees: state.employees,
-                    onCreateTask: (newTask) {
-                      state.createTask(newTask);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
-                          backgroundColor: AppColors.primaryDark,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onSendBroadcast: (msg, div) => state.sendBroadcast(msg, div),
                   );
                 },
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: const Text('Buat Tugas Baru'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.campaign_outlined, color: AppColors.textSecondary, size: 20),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
+            ],
+          )
+        else
+          Row(
+            children: [
+              // Update Progres Tugas (User Only)
+              Expanded(
+                flex: 5,
+                child: ElevatedButton.icon(
+                  onPressed: () => state.setTab(1),
+                  icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  label: const Text('Update Progres'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
 
-            // Unggah SOP
-            Expanded(
-              flex: 4,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  UploadSopBottomSheet.show(
-                    context,
-                    onAddSop: (newSop) {
-                      state.addSop(newSop);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Dokumen "${newSop.title}" berhasil diterbitkan!'),
-                          backgroundColor: AppColors.primaryDark,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
-                  );
-                },
-                icon: const Icon(Icons.file_upload_outlined, size: 18, color: AppColors.primary),
-                label: const Text('Unggah SOP'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: const BorderSide(color: AppColors.border),
-                  backgroundColor: Colors.white,
+              // Chat Tim
+              Expanded(
+                flex: 4,
+                child: OutlinedButton.icon(
+                  onPressed: () => state.setTab(4),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.primary),
+                  label: const Text('Chat Tim'),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    side: const BorderSide(color: AppColors.border),
+                    backgroundColor: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
 
-            // Megaphone Broadcast
-            InkWell(
-              onTap: () {
-                BroadcastBottomSheet.show(
-                  context,
-                  onSendBroadcast: (msg, div) => state.sendBroadcast(msg, div),
-                );
-              },
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
+              // SOP Shortcut
+              InkWell(
+                onTap: () => state.setTab(2),
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Icon(Icons.menu_book_outlined, color: AppColors.textSecondary, size: 20),
                 ),
-                child: const Icon(Icons.campaign_outlined, color: AppColors.textSecondary, size: 20),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
         const SizedBox(height: 18),
 
         // 3. Ringkasan Beban Kerja (2x2 Grid)
@@ -416,20 +472,37 @@ class HomeScreen extends StatelessWidget {
         ...approachingTasks.map((task) {
           return InkWell(
             onTap: () {
-              UpdateProgressBottomSheet.show(
-                context,
-                task: task,
-                onSaveProgress: (id, subtasks, pct) {
-                  state.saveProgress(id, subtasks, pct);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Progres tugas berhasil diperbarui!'),
-                      backgroundColor: AppColors.primaryDark,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-              );
+              if (state.isUser) {
+                UpdateProgressBottomSheet.show(
+                  context,
+                  task: task,
+                  onSaveProgress: (id, subtasks, pct) {
+                    state.saveProgress(id, subtasks, pct);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Progres tugas berhasil diperbarui!'),
+                        backgroundColor: AppColors.primaryDark,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                );
+              } else if (state.isAdmin) {
+                ReviewTaskBottomSheet.show(
+                  context,
+                  task: task,
+                  onApproveTask: (id) {
+                    state.approveTask(id);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Tugas telah disetujui & ditandai selesai!'),
+                        backgroundColor: AppColors.primaryDark,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                );
+              }
             },
             borderRadius: BorderRadius.circular(16),
             child: Container(

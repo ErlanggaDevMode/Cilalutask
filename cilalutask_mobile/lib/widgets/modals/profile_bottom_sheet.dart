@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../models/employee.dart';
+import '../../state/app_state_scope.dart';
 
 class ProfileBottomSheet extends StatelessWidget {
-  final CurrentUser currentUser;
+  final CurrentUser? currentUser;
 
   const ProfileBottomSheet({
     super.key,
-    required this.currentUser,
+    this.currentUser,
   });
 
-  static Future<void> show(BuildContext context, {required CurrentUser currentUser}) {
+  static Future<void> show(BuildContext context, {CurrentUser? currentUser}) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -25,6 +26,14 @@ class ProfileBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = AppStateScope.of(context);
+    final isAdmin = state.isAdmin;
+    final userName = currentUser?.name ?? state.currentUserName;
+    final userAvatar = currentUser?.avatar ?? state.currentUserAvatar;
+    final userEmail = currentUser?.email ?? state.currentUserEmail;
+    final targetQuarter = currentUser?.targetQuarterPercent ?? (isAdmin ? 94 : 88);
+    final efficiency = currentUser?.teamEfficiencyPercent ?? (isAdmin ? 98 : 92);
+
     return Padding(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -57,7 +66,7 @@ class ProfileBottomSheet extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Text(
-                'Profil & Preferensi Pengguna',
+                'Profil & Akun Pengguna',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -79,17 +88,17 @@ class ProfileBottomSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primaryLight.withOpacity(0.5),
+              color: isAdmin ? AppColors.primaryLight.withValues(alpha: 0.5) : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.primaryBorder),
+              border: Border.all(color: isAdmin ? AppColors.primaryBorder : const Color(0xFFA7F3D0)),
             ),
             child: Row(
               children: [
                 CustomAvatar(
-                  imageUrl: currentUser.avatar,
-                  fallbackText: currentUser.name,
+                  imageUrl: userAvatar,
+                  fallbackText: userName,
                   radius: 28,
-                  borderColor: AppColors.primary,
+                  borderColor: isAdmin ? AppColors.primary : AppColors.successDark,
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -97,7 +106,7 @@ class ProfileBottomSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentUser.name,
+                        userName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -108,15 +117,16 @@ class ProfileBottomSheet extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
+                          color: isAdmin ? AppColors.primaryLight : const Color(0xFFD1FAE5),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          currentUser.role,
-                          style: const TextStyle(
+                          isAdmin ? 'ADMINISTRATOR' : 'USER / KARYAWAN',
+                          style: TextStyle(
                             fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary,
+                            fontWeight: FontWeight.w900,
+                            color: isAdmin ? AppColors.primary : const Color(0xFF047857),
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
@@ -127,7 +137,7 @@ class ProfileBottomSheet extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              currentUser.email,
+                              userEmail,
                               style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -140,14 +150,55 @@ class ProfileBottomSheet extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+
+          // Role Permissions Summary Card
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSecondary,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
+                      size: 15,
+                      color: isAdmin ? AppColors.primary : AppColors.successDark,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      isAdmin ? 'Otoritas Akses: Admin' : 'Otoritas Akses: Karyawan',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isAdmin
+                      ? '✓ Review & beri persetujuan subtask tugas\n✓ Terbitkan tugas baru & delegasikan ke tim\n✓ Pantau kepatuhan SOP & analitik divisi'
+                      : '✓ Perbarui progres & centang subtask mandiri\n✓ Pelajari panduan operasional SOP\n✓ Komunikasi aktif tim via Tab Chat',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
 
           // Quick Metrics
           Row(
             children: [
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(14),
@@ -161,9 +212,9 @@ class ProfileBottomSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${currentUser.targetQuarterPercent}%',
+                        '$targetQuarter%',
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.primaryDark,
                         ),
@@ -175,7 +226,7 @@ class ProfileBottomSheet extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Container(
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppColors.surfaceSecondary,
                     borderRadius: BorderRadius.circular(14),
@@ -189,9 +240,9 @@ class ProfileBottomSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${currentUser.teamEfficiencyPercent}%',
+                        '$efficiency%',
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w800,
                           color: AppColors.success,
                         ),
@@ -202,19 +253,47 @@ class ProfileBottomSheet extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Close button
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+          // Action Buttons: Logout / Ganti Akun & Tutup
+          Row(
+            children: [
+              // Logout / Ganti Akun
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    state.logout();
+                  },
+                  icon: const Icon(Icons.logout_rounded, size: 16, color: AppColors.danger),
+                  label: const Text(
+                    'Keluar / Ganti Akun',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.dangerBorder),
+                    backgroundColor: const Color(0xFFFEF2F2),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
               ),
-              child: const Text('Tutup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            ),
+              const SizedBox(width: 10),
+              // Tutup
+              ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: const Text('Tutup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
         ],

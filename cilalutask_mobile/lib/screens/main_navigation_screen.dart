@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/widgets/custom_avatar.dart';
+import '../core/widgets/in_app_notification_banner.dart';
 import '../state/app_state_scope.dart';
+import '../widgets/modals/notification_center_bottom_sheet.dart';
 import '../widgets/modals/profile_bottom_sheet.dart';
 import 'home/home_screen.dart';
 import 'tasks/tasks_screen.dart';
 import 'sop/sop_screen.dart';
 import 'reports/reports_screen.dart';
+import 'chat/chat_screen.dart';
 import 'team/team_screen.dart';
 
 class MainNavigationScreen extends StatelessWidget {
@@ -23,6 +26,8 @@ class MainNavigationScreen extends StatelessWidget {
       case 3:
         return 'Laporan';
       case 4:
+        return 'Chat Tim';
+      case 5:
         return 'Tim & Notif';
       default:
         return 'Beranda';
@@ -41,6 +46,7 @@ class MainNavigationScreen extends StatelessWidget {
       TasksScreen(),
       SopScreen(),
       ReportsScreen(),
+      ChatScreen(),
       TeamScreen(),
     ];
 
@@ -56,7 +62,7 @@ class MainNavigationScreen extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.02),
+                color: Colors.black.withValues(alpha: 0.02),
                 blurRadius: 4,
                 offset: const Offset(0, 2),
               ),
@@ -81,7 +87,7 @@ class MainNavigationScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.primary.withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -95,20 +101,40 @@ class MainNavigationScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
 
-                  // Brand Text & Subtitle
+                  // Brand Text & Subtitle & Role Badge
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'CILULATAKS',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.primaryDark,
-                          letterSpacing: 0.5,
-                          height: 1.1,
-                        ),
+                      Row(
+                        children: [
+                          const Text(
+                            'CILULATAKS',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.primaryDark,
+                              letterSpacing: 0.5,
+                              height: 1.1,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: state.isAdmin ? AppColors.primaryLight : AppColors.successLight,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              state.isAdmin ? 'ADMIN' : 'USER',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                color: state.isAdmin ? AppColors.primary : AppColors.successDark,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       Text(
                         _getSubTitle(currentTab),
@@ -123,9 +149,9 @@ class MainNavigationScreen extends StatelessWidget {
                   ),
                   const Spacer(),
 
-                  // Notification Bell
+                  // Notification Bell (opens real-time notification sheet)
                   IconButton(
-                    onPressed: () => state.setTab(4),
+                    onPressed: () => NotificationCenterBottomSheet.show(context),
                     icon: Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -157,17 +183,14 @@ class MainNavigationScreen extends StatelessWidget {
                   // Profile Avatar
                   InkWell(
                     onTap: () {
-                      ProfileBottomSheet.show(
-                        context,
-                        currentUser: state.currentUser,
-                      );
+                      ProfileBottomSheet.show(context);
                     },
                     borderRadius: BorderRadius.circular(16),
                     child: CustomAvatar(
-                      imageUrl: state.currentUser.avatar,
-                      fallbackText: state.currentUser.name,
+                      imageUrl: state.currentUserAvatar,
+                      fallbackText: state.currentUserName,
                       radius: 16,
-                      borderColor: AppColors.primaryBorder,
+                      borderColor: state.isAdmin ? AppColors.primaryBorder : AppColors.success,
                     ),
                   ),
                 ],
@@ -176,9 +199,14 @@ class MainNavigationScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: IndexedStack(
-        index: currentTab,
-        children: screens,
+      body: Stack(
+        children: [
+          IndexedStack(
+            index: currentTab,
+            children: screens,
+          ),
+          const InAppNotificationBanner(),
+        ],
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
@@ -188,7 +216,7 @@ class MainNavigationScreen extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -202,13 +230,13 @@ class MainNavigationScreen extends StatelessWidget {
               labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
                 if (states.contains(WidgetState.selected)) {
                   return const TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   );
                 }
                 return const TextStyle(
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: FontWeight.w500,
                   color: AppColors.textMuted,
                 );
@@ -250,6 +278,11 @@ class MainNavigationScreen extends StatelessWidget {
                   icon: Icon(Icons.bar_chart_outlined),
                   selectedIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary),
                   label: 'Laporan',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.chat_bubble_outline_rounded),
+                  selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppColors.primary),
+                  label: 'Chat',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.group_outlined),
