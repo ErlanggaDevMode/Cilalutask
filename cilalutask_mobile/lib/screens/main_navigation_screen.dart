@@ -1,0 +1,266 @@
+import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
+import '../core/widgets/custom_avatar.dart';
+import '../state/app_state_scope.dart';
+import '../widgets/modals/profile_bottom_sheet.dart';
+import 'home/home_screen.dart';
+import 'tasks/tasks_screen.dart';
+import 'sop/sop_screen.dart';
+import 'reports/reports_screen.dart';
+import 'team/team_screen.dart';
+
+class MainNavigationScreen extends StatelessWidget {
+  const MainNavigationScreen({super.key});
+
+  String _getSubTitle(int tabIndex) {
+    switch (tabIndex) {
+      case 0:
+        return 'Beranda';
+      case 1:
+        return 'Tugas';
+      case 2:
+        return 'Sop';
+      case 3:
+        return 'Laporan';
+      case 4:
+        return 'Tim & Notif';
+      default:
+        return 'Beranda';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = AppStateScope.of(context);
+    final currentTab = state.currentTabIndex;
+    final unreadNotifs = state.unreadNotificationsCount;
+    final activeReviewCount = state.activeReviewCount;
+
+    final screens = const [
+      HomeScreen(),
+      TasksScreen(),
+      SopScreen(),
+      ReportsScreen(),
+      TeamScreen(),
+    ];
+
+    return Scaffold(
+      backgroundColor: AppColors.scaffoldBg,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: const Border(
+              bottom: BorderSide(color: AppColors.border, width: 1),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  // Shield Logo
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF1D4ED8), Color(0xFF4F46E5)],
+                        begin: Alignment.bottomLeft,
+                        end: Alignment.topRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.shield_rounded,
+                      color: Colors.white,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Brand Text & Subtitle
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'CILULATAKS',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primaryDark,
+                          letterSpacing: 0.5,
+                          height: 1.1,
+                        ),
+                      ),
+                      Text(
+                        _getSubTitle(currentTab),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textMuted,
+                          height: 1.1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+
+                  // Notification Bell
+                  IconButton(
+                    onPressed: () => state.setTab(4),
+                    icon: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        const Icon(
+                          Icons.notifications_none_rounded,
+                          size: 22,
+                          color: AppColors.textSecondary,
+                        ),
+                        if (unreadNotifs > 0)
+                          Positioned(
+                            right: -1,
+                            top: -1,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: AppColors.danger,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 4),
+
+                  // Profile Avatar
+                  InkWell(
+                    onTap: () {
+                      ProfileBottomSheet.show(
+                        context,
+                        currentUser: state.currentUser,
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: CustomAvatar(
+                      imageUrl: state.currentUser.avatar,
+                      fallbackText: state.currentUser.name,
+                      radius: 16,
+                      borderColor: AppColors.primaryBorder,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: IndexedStack(
+        index: currentTab,
+        children: screens,
+      ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: const Border(
+            top: BorderSide(color: AppColors.border, width: 1),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: NavigationBarTheme(
+            data: NavigationBarThemeData(
+              indicatorColor: AppColors.primaryLight,
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                  );
+                }
+                return const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textMuted,
+                );
+              }),
+            ),
+            child: NavigationBar(
+              selectedIndex: currentTab,
+              onDestinationSelected: (index) => state.setTab(index),
+              backgroundColor: Colors.white,
+              elevation: 0,
+              height: 64,
+              destinations: [
+                const NavigationDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
+                  label: 'Beranda',
+                ),
+                NavigationDestination(
+                  icon: Badge(
+                    label: Text('$activeReviewCount'),
+                    isLabelVisible: activeReviewCount > 0,
+                    backgroundColor: AppColors.primary,
+                    child: const Icon(Icons.assignment_outlined),
+                  ),
+                  selectedIcon: Badge(
+                    label: Text('$activeReviewCount'),
+                    isLabelVisible: activeReviewCount > 0,
+                    backgroundColor: AppColors.primary,
+                    child: const Icon(Icons.assignment_rounded, color: AppColors.primary),
+                  ),
+                  label: 'Tugas',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.menu_book_outlined),
+                  selectedIcon: Icon(Icons.menu_book_rounded, color: AppColors.primary),
+                  label: 'SOP',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.bar_chart_outlined),
+                  selectedIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary),
+                  label: 'Laporan',
+                ),
+                const NavigationDestination(
+                  icon: Icon(Icons.group_outlined),
+                  selectedIcon: Icon(Icons.group_rounded, color: AppColors.primary),
+                  label: 'Tim & Notif',
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
