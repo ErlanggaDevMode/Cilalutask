@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../models/employee.dart';
+import '../../state/app_state_controller.dart';
 import '../../state/app_state_scope.dart';
 
 class ProfileBottomSheet extends StatelessWidget {
@@ -31,8 +33,7 @@ class ProfileBottomSheet extends StatelessWidget {
     final userName = currentUser?.name ?? state.currentUserName;
     final userAvatar = currentUser?.avatar ?? state.currentUserAvatar;
     final userEmail = currentUser?.email ?? state.currentUserEmail;
-    final targetQuarter = currentUser?.targetQuarterPercent ?? (isAdmin ? 94 : 88);
-    final efficiency = currentUser?.teamEfficiencyPercent ?? (isAdmin ? 98 : 92);
+    final company = state.currentCompany;
 
     return Padding(
       padding: const EdgeInsets.all(20),
@@ -82,11 +83,11 @@ class ProfileBottomSheet extends StatelessWidget {
             ],
           ),
           const Divider(height: 1, color: AppColors.border),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
           // User Card
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: isAdmin ? AppColors.primaryLight.withValues(alpha: 0.5) : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(16),
@@ -94,13 +95,32 @@ class ProfileBottomSheet extends StatelessWidget {
             ),
             child: Row(
               children: [
-                CustomAvatar(
-                  imageUrl: userAvatar,
-                  fallbackText: userName,
-                  radius: 28,
-                  borderColor: isAdmin ? AppColors.primary : AppColors.successDark,
+                Stack(
+                  children: [
+                    CustomAvatar(
+                      imageUrl: userAvatar,
+                      fallbackText: userName,
+                      radius: 26,
+                      borderColor: isAdmin ? AppColors.primary : AppColors.successDark,
+                    ),
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: InkWell(
+                        onTap: () => _showEditAvatarSheet(context, state, userName, userAvatar),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.edit, size: 10, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,41 +128,37 @@ class ProfileBottomSheet extends StatelessWidget {
                       Text(
                         userName,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isAdmin ? AppColors.primaryLight : const Color(0xFFD1FAE5),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          isAdmin ? 'ADMINISTRATOR' : 'USER / KARYAWAN',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w900,
-                            color: isAdmin ? AppColors.primary : const Color(0xFF047857),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.mail_outline_rounded, size: 14, color: AppColors.textMuted),
-                          const SizedBox(width: 4),
-                          Expanded(
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: isAdmin ? AppColors.primaryLight : const Color(0xFFD1FAE5),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
                             child: Text(
-                              userEmail,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              overflow: TextOverflow.ellipsis,
+                              isAdmin ? 'ADMINISTRATOR' : 'USER / KARYAWAN',
+                              style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w900,
+                                color: isAdmin ? AppColors.primary : const Color(0xFF047857),
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        userEmail,
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -150,110 +166,129 @@ class ProfileBottomSheet extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
 
-          // Role Permissions Summary Card
+          // Company Information Card
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: AppColors.surfaceSecondary,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(14),
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Icon(
-                      isAdmin ? Icons.admin_panel_settings_rounded : Icons.person_rounded,
-                      size: 15,
-                      color: isAdmin ? AppColors.primary : AppColors.successDark,
+                    Row(
+                      children: [
+                        const Icon(Icons.corporate_fare_rounded, size: 16, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          company.name,
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      isAdmin ? 'Otoritas Akses: Admin' : 'Otoritas Akses: Karyawan',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                    InkWell(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: company.code));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('ID Perusahaan ${company.code} berhasil disalin!'),
+                            backgroundColor: AppColors.primary,
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            Text(
+                              company.code,
+                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.copy_rounded, size: 10, color: AppColors.primary),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
-                  isAdmin
-                      ? '✓ Review & beri persetujuan subtask tugas\n✓ Terbitkan tugas baru & delegasikan ke tim\n✓ Pantau kepatuhan SOP & analitik divisi'
-                      : '✓ Perbarui progres & centang subtask mandiri\n✓ Pelajari panduan operasional SOP\n✓ Komunikasi aktif tim via Tab Chat',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, height: 1.4),
+                  'Industri: ${company.industry}',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Avatar Customization Card (Optional)
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.palette_outlined, color: AppColors.primary, size: 18),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Foto Profil / Avatar',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        userAvatar.isEmpty ? 'Aktif: Inisial Nama ($userName)' : 'Aktif: Foto Profil Kustom',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                OutlinedButton(
+                  onPressed: () => _showEditAvatarSheet(context, state, userName, userAvatar),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    side: const BorderSide(color: AppColors.primaryBorder),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: const Text(
+                    'Ubah (Opsional)',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
                 ),
               ],
             ),
           ),
           const SizedBox(height: 14),
-
-          // Quick Metrics
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceSecondary,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Target Kuartal',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$targetQuarter%',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceSecondary,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Efisiensi Tim',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$efficiency%',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.success,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
 
           // Action Buttons: Logout / Ganti Akun & Tutup
           Row(
@@ -298,6 +333,247 @@ class ProfileBottomSheet extends StatelessWidget {
           const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+
+  void _showEditAvatarSheet(
+    BuildContext context,
+    AppStateController state,
+    String userName,
+    String currentAvatar,
+  ) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final urlController = TextEditingController(text: currentAvatar);
+            String selectedAvatar = currentAvatar;
+
+            final presetAvatars = [
+              'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+              'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
+              'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
+              'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=256',
+            ];
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20,
+                right: 20,
+                top: 14,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Ubah Foto Profil (Opsional)',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                          onPressed: () => Navigator.of(context).pop(),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Center(
+                      child: Column(
+                        children: [
+                          CustomAvatar(
+                            imageUrl: selectedAvatar,
+                            fallbackText: userName,
+                            radius: 36,
+                            borderColor: AppColors.primary,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            selectedAvatar.isEmpty
+                                ? 'Pratinjau: Inisial Nama (${CustomAvatar.getInitials(userName)})'
+                                : 'Pratinjau: Foto Terpilih',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    // Option 1: Gunakan Inisial Nama (Default)
+                    InkWell(
+                      onTap: () {
+                        setModalState(() {
+                          selectedAvatar = '';
+                          urlController.text = '';
+                        });
+                      },
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: selectedAvatar.isEmpty ? AppColors.primaryLight : AppColors.surfaceSecondary,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: selectedAvatar.isEmpty ? AppColors.primary : AppColors.border,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            CustomAvatar(
+                              imageUrl: '',
+                              fallbackText: userName,
+                              radius: 14,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Gunakan Inisial Nama (Default)',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Menampilkan inisial ${CustomAvatar.getInitials(userName)} dengan gradasi modern.',
+                                    style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (selectedAvatar.isEmpty)
+                              const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Pilih Dari Foto Rekomendasi:',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: presetAvatars.map((url) {
+                        final isChosen = selectedAvatar == url;
+                        return InkWell(
+                          onTap: () {
+                            setModalState(() {
+                              selectedAvatar = url;
+                              urlController.text = url;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(24),
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isChosen ? AppColors.primary : Colors.transparent,
+                                width: 2.5,
+                              ),
+                            ),
+                            child: CustomAvatar(
+                              imageUrl: url,
+                              fallbackText: userName,
+                              radius: 22,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Atau Input Link Foto (URL Web):',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: urlController,
+                      style: const TextStyle(fontSize: 12),
+                      decoration: InputDecoration(
+                        hintText: 'https://images.unsplash.com/...',
+                        hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: AppColors.border),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: const Icon(Icons.check_rounded, size: 18, color: AppColors.primary),
+                          onPressed: () {
+                            setModalState(() {
+                              selectedAvatar = urlController.text.trim();
+                            });
+                          },
+                        ),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          selectedAvatar = val.trim();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          state.updateUserAvatar(selectedAvatar);
+                          Navigator.of(context).pop();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Foto profil berhasil diperbarui!'),
+                              backgroundColor: AppColors.primary,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('Simpan Foto Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

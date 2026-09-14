@@ -8,6 +8,7 @@ import '../models/employee.dart';
 import '../models/notification_item.dart';
 import '../models/user_role.dart';
 import '../models/chat_model.dart';
+import '../models/company.dart';
 import '../data/mock_data.dart';
 
 class AppStateController extends ChangeNotifier {
@@ -16,17 +17,39 @@ class AppStateController extends ChangeNotifier {
   UserRole _currentUserRole = UserRole.admin;
   Assignee? _currentEmployee; // null if Admin
 
+  // Multi-Company System
+  List<Company> _companies = [
+    Company(
+      id: 'comp-1',
+      name: 'PT Cilalu Sentosa',
+      code: 'CILALU-88',
+      adminName: 'Sarah Pratama',
+      adminEmail: 'sarah.pratama@cilulataks.id',
+      adminPassword: 'password123',
+      createdAt: DateTime.now().subtract(const Duration(days: 30)),
+      industry: 'Teknologi & Operasional Cloud',
+    ),
+  ];
+  late Company _currentCompany;
+  List<JoinRequest> _joinRequests = [];
+  bool _isBlankMode = false;
+  String? _customUserAvatar;
+
   int _currentTabIndex = 0;
   String _teamSubTab = 'tim'; // 'tim' | 'notif'
   NotificationItem? _activeInAppNotification;
   Timer? _inAppBannerTimer;
+
+  AppStateController() {
+    _currentCompany = _companies.first;
+  }
 
   List<Task> _tasks = List.from(kInitialTasks);
   List<SOPDocument> _sops = List.from(kInitialSops);
   List<ActivityItem> _activities = List.from(kInitialActivities);
   List<NotificationItem> _notifications = List.from(kNotificationsData);
   final CurrentUser _currentUser = kCurrentUser;
-  final List<Assignee> _employees = List.from(kEmployees);
+  List<Assignee> _employees = List.from(kEmployees);
 
   // Chat Channels & Messages
   List<ChatChannel> _channels = [
@@ -127,23 +150,45 @@ class AppStateController extends ChangeNotifier {
   Assignee? get currentEmployee => _currentEmployee;
 
   String get currentUserName =>
-      _currentUserRole == UserRole.admin ? _currentUser.name : (_currentEmployee?.name ?? 'Karyawan');
+      _currentUserRole == UserRole.admin
+          ? (_currentCompany.adminName.isNotEmpty ? _currentCompany.adminName : _currentUser.name)
+          : (_currentEmployee?.name ?? 'Karyawan');
 
   String get currentUserRoleTitle =>
       _currentUserRole == UserRole.admin ? _currentUser.role : (_currentEmployee?.role ?? 'Karyawan');
 
   String get currentUserAvatar =>
-      _currentUserRole == UserRole.admin
-          ? _currentUser.avatar
-          : (_currentEmployee?.avatar ?? 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256');
+      _customUserAvatar ??
+      (_currentUserRole == UserRole.admin
+          ? ''
+          : (_currentEmployee?.avatar ?? ''));
+
+  void updateUserAvatar(String newAvatar) {
+    _customUserAvatar = newAvatar;
+    notifyListeners();
+  }
 
   String get currentUserDivision =>
       _currentUserRole == UserRole.admin ? _currentUser.division : (_currentEmployee?.division ?? 'Operasional');
 
   String get currentUserEmail =>
       _currentUserRole == UserRole.admin
-          ? _currentUser.email
-          : '${_currentEmployee?.shortName.toLowerCase().replaceAll(' ', '').replaceAll('.', '') ?? 'user'}@cilulataks.id';
+          ? (_currentCompany.adminEmail.isNotEmpty ? _currentCompany.adminEmail : _currentUser.email)
+          : '${_currentEmployee?.shortName.toLowerCase().replaceAll(' ', '').replaceAll('.', '') ?? 'user'}@${_currentCompany.code.toLowerCase()}.id';
+
+  // Company & Multi-tenant Getters
+  Company get currentCompany => _currentCompany;
+  List<Company> get companies => List.unmodifiable(_companies);
+  List<JoinRequest> get joinRequests => List.unmodifiable(_joinRequests);
+  List<JoinRequest> get pendingJoinRequests =>
+      _joinRequests.where((r) => r.status == JoinRequestStatus.pending && r.companyCode.toUpperCase() == _currentCompany.code.toUpperCase()).toList();
+  int get pendingJoinRequestsCount => pendingJoinRequests.length;
+  bool get isBlankMode => _isBlankMode;
+
+  void switchCompany(Company comp) {
+    _currentCompany = comp;
+    notifyListeners();
+  }
 
   // Navigation & Data Getters
   int get currentTabIndex => _currentTabIndex;
@@ -214,8 +259,215 @@ class AppStateController extends ChangeNotifier {
     }).toList();
   }
 
+  // Company & Multi-tenant Registration Methods
+  void registerCompany({
+    required String name,
+    required String code,
+    required String adminName,
+    required String adminEmail,
+    required String adminPassword,
+    String industry = 'Operasional & Bisnis',
+  }) {
+    final cleanCode = code.trim().toUpperCase();
+    final newComp = Company(
+      id: 'comp-${DateTime.now().millisecondsSinceEpoch}',
+      name: name.trim(),
+      code: cleanCode,
+      adminName: adminName.trim(),
+      adminEmail: adminEmail.trim(),
+      adminPassword: adminPassword,
+      createdAt: DateTime.now(),
+      industry: industry,
+    );
+
+    _companies = [newComp, ..._companies];
+    _currentCompany = newComp;
+    _isBlankMode = true;
+
+    // Start with completely blank state for the new company
+    _tasks = [];
+    _sops = [];
+    _activities = [];
+    _notifications = [];
+    _employees = [];
+    _channels = [
+      ChatChannel(
+        id: 'ch-umum',
+        name: '#umum',
+        description: 'Saluran pengumuman dan diskusi ${newComp.name}',
+        lastMessage: 'Selamat datang di ${newComp.name}! Bagikan Kode ID $cleanCode untuk mengundang tim.',
+        lastMessageTime: 'Baru saja',
+        unreadCount: 0,
+      ),
+    ];
+
+    _currentUserRole = UserRole.admin;
+    _currentEmployee = null;
+    _isAuthenticated = true;
+    _currentTabIndex = 0;
+
+    pushNotification(
+      NotificationItem(
+        id: 'notif-welcome-${DateTime.now().millisecondsSinceEpoch}',
+        title: '🏢 Perusahaan ${newComp.name} Berhasil Dibuat!',
+        description: 'ID Perusahaan Anda: $cleanCode. Bagikan ke karyawan agar mereka dapat bergabung.',
+        time: 'Baru saja',
+        type: 'system',
+        targetTab: 5,
+        timestamp: DateTime.now(),
+      ),
+      showBanner: true,
+    );
+
+    notifyListeners();
+  }
+
+  JoinRequest submitJoinRequest({
+    required String companyCode,
+    required String name,
+    required String email,
+    required String password,
+    required String division,
+    required String role,
+  }) {
+    final cleanCode = companyCode.trim().toUpperCase();
+    final targetComp = _companies.firstWhere(
+      (c) => c.code.toUpperCase() == cleanCode,
+      orElse: () => Company(
+        id: 'comp-ext',
+        name: 'Perusahaan $cleanCode',
+        code: cleanCode,
+        adminName: 'Admin Perusahaan',
+        adminEmail: 'admin@${cleanCode.toLowerCase()}.id',
+        adminPassword: 'password123',
+        createdAt: DateTime.now(),
+      ),
+    );
+
+    final req = JoinRequest(
+      id: 'req-${DateTime.now().millisecondsSinceEpoch}',
+      companyCode: cleanCode,
+      companyName: targetComp.name,
+      userName: name.trim(),
+      userEmail: email.trim(),
+      userPassword: password,
+      division: division.trim(),
+      role: role.trim(),
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=256',
+      status: JoinRequestStatus.pending,
+      requestedAt: DateTime.now(),
+    );
+
+    _joinRequests = [req, ..._joinRequests];
+
+    pushNotification(
+      NotificationItem(
+        id: 'notif-join-${DateTime.now().millisecondsSinceEpoch}',
+        title: '👥 Permintaan Bergabung Baru!',
+        description: '${req.userName} memohon bergabung ke divisi ${req.division} ($cleanCode).',
+        time: 'Baru saja',
+        type: 'system',
+        targetTab: 5,
+        timestamp: DateTime.now(),
+      ),
+      showBanner: true,
+    );
+
+    notifyListeners();
+    return req;
+  }
+
+  void acceptJoinRequest(String requestId) {
+    JoinRequest? acceptedReq;
+    _joinRequests = _joinRequests.map((r) {
+      if (r.id == requestId) {
+        acceptedReq = r.copyWith(status: JoinRequestStatus.approved);
+        return acceptedReq!;
+      }
+      return r;
+    }).toList();
+
+    if (acceptedReq != null) {
+      final req = acceptedReq!;
+      final newEmp = Assignee(
+        id: 'emp-${DateTime.now().millisecondsSinceEpoch}',
+        name: req.userName,
+        shortName: req.userName.split(' ').first,
+        avatar: req.avatar,
+        division: req.division,
+        role: req.role,
+        hasTeamBadge: true,
+        teamCount: 1,
+      );
+
+      _employees = [..._employees, newEmp];
+
+      pushNotification(
+        NotificationItem(
+          id: 'notif-accepted-${DateTime.now().millisecondsSinceEpoch}',
+          title: '✅ ${req.userName} Diterima Bergabung!',
+          description: 'Karyawan resmi masuk tim divisi ${req.division} (${_currentCompany.name}).',
+          time: 'Baru saja',
+          type: 'system',
+          targetTab: 5,
+          timestamp: DateTime.now(),
+        ),
+        showBanner: true,
+      );
+    }
+
+    notifyListeners();
+  }
+
+  void rejectJoinRequest(String requestId) {
+    _joinRequests = _joinRequests.map((r) {
+      if (r.id == requestId) {
+        return r.copyWith(status: JoinRequestStatus.rejected);
+      }
+      return r;
+    }).toList();
+    notifyListeners();
+  }
+
+  void resetToBlankState() {
+    _isBlankMode = true;
+    _tasks = [];
+    _sops = [];
+    _activities = [];
+    _notifications = [];
+    _employees = [];
+    notifyListeners();
+  }
+
+  void loadSampleDemoData() {
+    _isBlankMode = false;
+    _tasks = List.from(kInitialTasks);
+    _sops = List.from(kInitialSops);
+    _activities = List.from(kInitialActivities);
+    _notifications = List.from(kNotificationsData);
+    _employees = List.from(kEmployees);
+    notifyListeners();
+  }
+
+  void createChannel({required String name, required String description}) {
+    final cleanName = name.startsWith('#') ? name : '#$name';
+    final newCh = ChatChannel(
+      id: 'ch-${DateTime.now().millisecondsSinceEpoch}',
+      name: cleanName,
+      description: description,
+      lastMessage: 'Saluran baru dibuat oleh $currentUserName',
+      lastMessageTime: 'Baru saja',
+      unreadCount: 0,
+    );
+    _channels = [..._channels, newCh];
+    notifyListeners();
+  }
+
   // Auth Methods
-  void loginAsAdmin() {
+  void loginAsAdmin({Company? company}) {
+    if (company != null) {
+      _currentCompany = company;
+    }
     _currentUserRole = UserRole.admin;
     _currentEmployee = null;
     _isAuthenticated = true;
@@ -223,7 +475,10 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void loginAsEmployee(Assignee employee) {
+  void loginAsEmployee(Assignee employee, {Company? company}) {
+    if (company != null) {
+      _currentCompany = company;
+    }
     _currentUserRole = UserRole.user;
     _currentEmployee = employee;
     _isAuthenticated = true;

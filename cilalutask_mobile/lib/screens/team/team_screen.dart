@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../state/app_state_controller.dart';
 import '../../state/app_state_scope.dart';
 import '../../widgets/modals/create_task_bottom_sheet.dart';
+import '../../widgets/modals/join_requests_bottom_sheet.dart';
 import '../chat/chat_room_screen.dart';
 
 class TeamScreen extends StatelessWidget {
@@ -12,24 +14,22 @@ class TeamScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
-    final user = state.currentUser;
+    final company = state.currentCompany;
     final employees = state.employees;
-    final notifications = state.notifications;
-    final hasUnreadNotif = notifications.any((n) => n.unread);
-    final activeSubTab = state.teamSubTab;
+    final pendingCount = state.pendingJoinRequestsCount;
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
-        // 1. Header & Subtab Switcher
+        // 1. Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'KOLABORASI & NOTIFIKASI',
+              children: [
+                const Text(
+                  'KOLABORASI TIM',
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w900,
@@ -37,10 +37,10 @@ class TeamScreen extends StatelessWidget {
                     letterSpacing: 0.8,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Tim & Notif',
-                  style: TextStyle(
+                  'Tim ${company.name}',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
@@ -48,482 +48,515 @@ class TeamScreen extends StatelessWidget {
                 ),
               ],
             ),
-
-            // Subtab Switcher
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceSecondary,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  _buildSubTabButton(state, 'tim', 'Anggota', Icons.group_rounded),
-                  _buildSubTabButton(state, 'notif', 'Notif', Icons.notifications_rounded, hasBadge: hasUnreadNotif),
-                ],
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 16),
 
-        // SUBTAB 1: TIM (Anggota)
-        if (activeSubTab == 'tim') ...[
-          // Manager Profile Highlight Card
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Colors.white, Color(0xFFEFF6FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.primaryBorder),
-            ),
-            child: Row(
-              children: [
-                CustomAvatar(
-                  imageUrl: user.avatar,
-                  fallbackText: user.name,
-                  radius: 26,
-                  borderColor: AppColors.primary,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              user.name,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              user.role,
-                              style: const TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        user.email,
-                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.verified_user_rounded, size: 13, color: AppColors.successDark),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Divisi: ${user.division}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.successDark,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
+        // Company Identity & Unique ID Card
+        _buildCompanyIdentityCard(context, company, state),
+        const SizedBox(height: 14),
 
-          // Member List Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Daftar Karyawan (${employees.length})',
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const Text(
-                'Semua Aktif',
-                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
+        // Admin Banner: Pending Join Requests
+        if (state.isAdmin) ...[
+          _buildAdminJoinRequestsBanner(context, state, pendingCount, company.code),
+          const SizedBox(height: 14),
+        ],
 
-          // Member List
-          ...employees.map((emp) {
-            return Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: Row(
-                children: [
-                  CustomAvatar(
-                    imageUrl: emp.avatar,
-                    fallbackText: emp.name,
-                    radius: 18,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          emp.name,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                            children: [
-                              TextSpan(text: '${emp.role} • '),
-                              TextSpan(
-                                text: emp.division,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+        // User Profile Card (Current User)
+        _buildCurrentUserCard(state),
+        const SizedBox(height: 18),
 
-                  // Action Buttons (RBAC Guarded)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Chat button available to all
-                      IconButton(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ChatRoomScreen(directUser: emp),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
-                        color: AppColors.primary,
-                        tooltip: 'Chat dengan ${emp.name}',
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      // Only Admin can give/assign tasks
-                      if (state.isAdmin) ...[
-                        const SizedBox(width: 4),
-                        ElevatedButton(
-                          onPressed: () {
-                            CreateTaskBottomSheet.show(
-                              context,
-                              employees: employees,
-                              defaultAssignee: emp,
-                              onCreateTask: (newTask) {
-                                state.createTask(newTask);
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Tugas "${newTask.title}" berhasil diterbitkan untuk ${emp.name}!'),
-                                    backgroundColor: AppColors.primaryDark,
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primaryLight,
-                            foregroundColor: AppColors.primary,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          ),
-                          child: const Text('Beri Tugas', style: TextStyle(fontSize: 11)),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+        // Member List Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Daftar Karyawan (${employees.length})',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
-            );
-          }),
-        ] else ...[
-          // SUBTAB 2: NOTIFIKASI
-          // Live status & Test Simulation Banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFEFF6FF),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.primaryBorder),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.success,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Expanded(
-                  child: Text(
-                    'Layanan Real-time Aktif',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primaryDark,
-                    ),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => state.simulateIncomingRealtimeEvent(),
-                  icon: const Icon(Icons.flash_on_rounded, size: 12),
-                  label: const Text(
-                    'Uji Real-time (+)',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Pemberitahuan (${notifications.length})',
-                style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-              ),
+            if (state.isAdmin)
               InkWell(
-                onTap: () => state.markAllNotificationsAsRead(),
-                child: const Text(
-                  'Tandai Semua Dibaca',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          ...notifications.map((notif) {
-            final isUnread = notif.unread;
-
-            IconData notifIcon;
-            Color iconColor;
-            Color iconBg;
-
-            switch (notif.type) {
-              case 'chat':
-                notifIcon = Icons.chat_bubble_rounded;
-                iconColor = const Color(0xFF4F46E5);
-                iconBg = const Color(0xFFEEF2FF);
-                break;
-              case 'review':
-                notifIcon = Icons.verified_user_rounded;
-                iconColor = const Color(0xFF9333EA);
-                iconBg = const Color(0xFFFAF5FF);
-                break;
-              case 'deadline':
-                notifIcon = Icons.access_time_rounded;
-                iconColor = AppColors.danger;
-                iconBg = AppColors.dangerLight;
-                break;
-              case 'urgent':
-                notifIcon = Icons.warning_amber_rounded;
-                iconColor = AppColors.danger;
-                iconBg = AppColors.dangerLight;
-                break;
-              case 'sop':
-                notifIcon = Icons.menu_book_rounded;
-                iconColor = const Color(0xFFD97706);
-                iconBg = const Color(0xFFFFFBEB);
-                break;
-              case 'task':
-              default:
-                notifIcon = Icons.assignment_rounded;
-                iconColor = AppColors.primary;
-                iconBg = AppColors.primaryLight;
-                break;
-            }
-
-            return InkWell(
-              onTap: () {
-                state.markNotificationAsRead(notif.id);
-                if (notif.targetTab != null) {
-                  state.setTab(notif.targetTab!);
-                }
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  color: isUnread ? iconBg.withValues(alpha: 0.3) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: isUnread ? iconColor.withValues(alpha: 0.35) : AppColors.border,
-                  ),
-                ),
+                onTap: () => JoinRequestsBottomSheet.show(context),
                 child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: iconBg,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(notifIcon, color: iconColor, size: 18),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  notif.title,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: isUnread ? FontWeight.bold : FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                              if (isUnread)
-                                Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    color: iconColor,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            notif.description,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                              height: 1.3,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            notif.time,
-                            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-                          ),
-                        ],
+                    const Icon(Icons.manage_accounts_rounded, size: 14, color: AppColors.primary),
+                    const SizedBox(width: 4),
+                    Text(
+                      pendingCount > 0 ? 'Permohonan ($pendingCount)' : 'Kelola Join',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: pendingCount > 0 ? Colors.amber.shade800 : AppColors.primary,
                       ),
                     ),
                   ],
                 ),
               ),
-            );
-          }),
-        ],
-        const SizedBox(height: 24),
+          ],
+        ),
+        const SizedBox(height: 10),
+
+        // Member List or Blank Empty State
+        if (employees.isEmpty)
+          _buildEmptyTeamState(context, company.code)
+        else
+          ...employees.map((emp) => _buildEmployeeCard(context, state, emp, employees)),
       ],
     );
   }
 
-  Widget _buildSubTabButton(AppStateController state, String tabId, String label, IconData icon, {bool hasBadge = false}) {
-    final isActive = state.teamSubTab == tabId;
-
-    return InkWell(
-      onTap: () => state.setTeamSubTab(tabId),
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
-                    blurRadius: 4,
-                    offset: const Offset(0, 1),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: isActive ? AppColors.primaryDark : AppColors.textMuted),
-            const SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                color: isActive ? AppColors.primaryDark : AppColors.textSecondary,
-              ),
-            ),
-            if (hasBadge) ...[
-              const SizedBox(width: 4),
+  Widget _buildCompanyIdentityCard(BuildContext context, dynamic company, AppStateController state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
               Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(
-                  color: AppColors.danger,
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.business_rounded, color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      company.name,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      company.industry,
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    ),
+                  ],
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(height: 1, color: AppColors.border),
+          const SizedBox(height: 10),
+
+          // Unique ID Banner with Copy button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'ID Perusahaan: ',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      company.code,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.8,
+                        color: AppColors.primaryDark,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: company.code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Kode Perusahaan ${company.code} berhasil disalin!'),
+                      backgroundColor: AppColors.primary,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.copy_rounded, size: 12, color: AppColors.primary),
+                      SizedBox(width: 4),
+                      Text('Salin Kode', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAdminJoinRequestsBanner(
+    BuildContext context,
+    AppStateController state,
+    int pendingCount,
+    String companyCode,
+  ) {
+    if (pendingCount > 0) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFBEB),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.amber.shade300),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.person_add_rounded, color: Colors.amber.shade800, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$pendingCount Permohonan Karyawan Baru!',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                  ),
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Ada calon karyawan menunggu persetujuan Anda untuk bergabung.',
+                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () => JoinRequestsBottomSheet.show(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.amber.shade800,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                visualDensity: VisualDensity.compact,
+              ),
+              child: const Text('Review', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
           ],
         ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSecondary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.how_to_reg_outlined, size: 16, color: AppColors.textMuted),
+              SizedBox(width: 8),
+              Text(
+                'Permintaan Bergabung Karyawan',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          InkWell(
+            onTap: () => JoinRequestsBottomSheet.show(context),
+            child: const Text(
+              'Buka Riwayat',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentUserCard(AppStateController state) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Colors.white, Color(0xFFEFF6FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.primaryBorder),
+      ),
+      child: Row(
+        children: [
+          CustomAvatar(
+            imageUrl: state.currentUserAvatar,
+            fallbackText: state.currentUserName,
+            radius: 26,
+            borderColor: AppColors.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        state.currentUserName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        state.currentUserRoleTitle,
+                        style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  state.currentUserEmail,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    const Icon(Icons.verified_user_rounded, size: 13, color: AppColors.successDark),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Divisi: ${state.currentUserDivision}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.successDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyTeamState(BuildContext context, String companyCode) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSecondary,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.group_off_outlined, size: 40, color: AppColors.textMuted),
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Belum Ada Karyawan Terdaftar',
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Perusahaan ini beroperasi dalam mode blank. Bagikan Kode ID "$companyCode" kepada karyawan agar mereka dapat mendaftar dan menunggu persetujuan Anda.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+          ),
+          const SizedBox(height: 18),
+          ElevatedButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: companyCode));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Kode ID Perusahaan $companyCode berhasil disalin!'),
+                  backgroundColor: AppColors.primary,
+                ),
+              );
+            },
+            icon: const Icon(Icons.share_rounded, size: 16),
+            label: const Text('Bagikan Kode ID Perusahaan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmployeeCard(
+    BuildContext context,
+    AppStateController state,
+    dynamic emp,
+    List<dynamic> employees,
+  ) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CustomAvatar(
+            imageUrl: emp.avatar,
+            fallbackText: emp.name,
+            radius: 18,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  emp.name,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    children: [
+                      TextSpan(text: '${emp.role} • '),
+                      TextSpan(
+                        text: emp.division,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Action Buttons
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => ChatRoomScreen(directUser: emp),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                color: AppColors.primary,
+                tooltip: 'Chat dengan ${emp.name}',
+                visualDensity: VisualDensity.compact,
+              ),
+              if (state.isAdmin) ...[
+                const SizedBox(width: 4),
+                ElevatedButton(
+                  onPressed: () {
+                    CreateTaskBottomSheet.show(
+                      context,
+                      employees: employees.cast(),
+                      defaultAssignee: emp,
+                      onCreateTask: (newTask) {
+                        state.createTask(newTask);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Tugas "${newTask.title}" berhasil diterbitkan untuk ${emp.name}!'),
+                            backgroundColor: AppColors.primaryDark,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryLight,
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  child: const Text('Beri Tugas', style: TextStyle(fontSize: 11)),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }

@@ -28,7 +28,7 @@ class MainNavigationScreen extends StatelessWidget {
       case 4:
         return 'Chat Tim';
       case 5:
-        return 'Tim & Notif';
+        return 'Tim';
       default:
         return 'Beranda';
     }
@@ -287,7 +287,7 @@ class MainNavigationScreen extends StatelessWidget {
                 const NavigationDestination(
                   icon: Icon(Icons.group_outlined),
                   selectedIcon: Icon(Icons.group_rounded, color: AppColors.primary),
-                  label: 'Tim & Notif',
+                  label: 'Tim',
                 ),
               ],
             ),

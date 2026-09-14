@@ -106,95 +106,42 @@ class _NotificationCenterBottomSheetState
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                  color: AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 5),
-                    const Text(
-                      'Live Real-time',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.successDark,
-                      ),
-                    ),
-                  ],
-                ),
+                child: const Icon(Icons.notifications_rounded, color: AppColors.primary, size: 18),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               const Expanded(
                 child: Text(
-                  'Notifikasi',
+                  'Pusat Notifikasi',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.bold,
                     color: AppColors.textPrimary,
                   ),
                 ),
               ),
+              if (unreadCount > 0)
+                TextButton(
+                  onPressed: () => state.markAllNotificationsAsRead(),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  child: Text(
+                    'Tandai Baca ($unreadCount)',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                ),
               IconButton(
                 icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Actions Row: Test Simulation & Mark All Read
-          Row(
-            children: [
-              // Simulate incoming notification
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    state.simulateIncomingRealtimeEvent();
-                  },
-                  icon: const Icon(Icons.flash_on_rounded, size: 14, color: AppColors.primary),
-                  label: const Text(
-                    'Uji Real-time (+)',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: AppColors.primaryBorder),
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-
-              // Mark all read
-              if (unreadCount > 0)
-                Expanded(
-                  child: TextButton.icon(
-                    onPressed: () => state.markAllNotificationsAsRead(),
-                    icon: const Icon(Icons.done_all_rounded, size: 15, color: AppColors.textSecondary),
-                    label: Text(
-                      'Tandai Baca ($unreadCount)',
-                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                    ),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
-                      backgroundColor: AppColors.surfaceSecondary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 12),

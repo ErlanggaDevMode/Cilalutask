@@ -145,109 +145,149 @@ class _ChatScreenState extends State<ChatScreen> {
                 color: AppColors.textPrimary,
               ),
             ),
-            Text(
-              '${filteredChannels.length} Saluran',
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            children: filteredChannels.asMap().entries.map((entry) {
-              final index = entry.key;
-              final ch = entry.value;
-
-              return Column(
-                children: [
-                  if (index > 0) const Divider(height: 1, color: AppColors.borderSubtle),
+            Row(
+              children: [
+                Text(
+                  '${filteredChannels.length} Saluran',
+                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                ),
+                if (state.isAdmin) ...[
+                  const SizedBox(width: 8),
                   InkWell(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => ChatRoomScreen(channel: ch),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Row(
+                    onTap: () => _showCreateChannelDialog(context, state),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
                         children: [
-                          Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(Icons.tag_rounded, color: AppColors.primary, size: 20),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      ch.name,
-                                      style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    Text(
-                                      ch.lastMessageTime,
-                                      style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  ch.lastMessage,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          if (ch.unreadCount > 0) ...[
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: const BoxDecoration(
-                                color: AppColors.primary,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Text(
-                                '${ch.unreadCount}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
+                          Icon(Icons.add_rounded, size: 12, color: AppColors.primary),
+                          SizedBox(width: 2),
+                          Text('+ Saluran', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary)),
                         ],
                       ),
                     ),
                   ),
                 ],
-              );
-            }).toList(),
-          ),
+              ],
+            ),
+          ],
         ),
+        const SizedBox(height: 8),
+
+        if (filteredChannels.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Center(
+              child: Text(
+                'Belum ada saluran chat dibuat.',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: filteredChannels.asMap().entries.map((entry) {
+                final index = entry.key;
+                final ch = entry.value;
+
+                return Column(
+                  children: [
+                    if (index > 0) const Divider(height: 1, color: AppColors.borderSubtle),
+                    InkWell(
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => ChatRoomScreen(channel: ch),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(16),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.tag_rounded, color: AppColors.primary, size: 20),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        ch.name,
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                      Text(
+                                        ch.lastMessageTime,
+                                        style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    ch.lastMessage,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (ch.unreadCount > 0) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Text(
+                                  '${ch.unreadCount}',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ),
         const SizedBox(height: 18),
 
         // 4. Section: Pesan Langsung (Direct Messages)
@@ -270,14 +310,41 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         const SizedBox(height: 8),
 
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Column(
-            children: filteredEmployees.asMap().entries.map((entry) {
+        if (filteredEmployees.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Center(
+              child: Column(
+                children: [
+                  const Icon(Icons.person_outline_rounded, size: 28, color: AppColors.textMuted),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Belum ada rekan tim untuk chat langsung.',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Karyawan dapat bergabung dengan ID: ${state.currentCompany.code}',
+                    style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: filteredEmployees.asMap().entries.map((entry) {
               final index = entry.key;
               final emp = entry.value;
 
@@ -357,4 +424,79 @@ class _ChatScreenState extends State<ChatScreen> {
       ],
     );
   }
+
+  void _showCreateChannelDialog(BuildContext context, dynamic state) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.add_comment_rounded, color: AppColors.primary, size: 20),
+              SizedBox(width: 8),
+              Text('Tambah Saluran Baru', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Nama Saluran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                style: const TextStyle(fontSize: 13),
+                decoration: const InputDecoration(
+                  hintText: 'contoh: pengumuman-operasional',
+                  prefixText: '# ',
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text('Deskripsi Saluran', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              TextField(
+                controller: descController,
+                style: const TextStyle(fontSize: 13),
+                decoration: const InputDecoration(
+                  hintText: 'Tujuan diskusi saluran ini...',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (nameController.text.trim().isNotEmpty) {
+                  state.createChannel(
+                    name: nameController.text.trim(),
+                    description: descController.text.trim().isNotEmpty
+                        ? descController.text.trim()
+                        : 'Saluran diskusi tim',
+                  );
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Saluran #${nameController.text.trim()} berhasil dibuat!'),
+                      backgroundColor: AppColors.primaryDark,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('Buat Saluran', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }
+

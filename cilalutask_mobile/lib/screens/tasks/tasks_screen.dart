@@ -280,38 +280,80 @@ class _TasksScreenState extends State<TasksScreen> {
             // 5. Task Cards List
             if (filteredTasks.isEmpty) ...[
               Container(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: AppColors.border),
                 ),
                 child: Column(
                   children: [
-                    const Icon(Icons.inbox_rounded, size: 36, color: AppColors.textMuted),
-                    const SizedBox(height: 10),
-                    const Text(
-                      'Tidak ada tugas yang cocok',
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        tasks.isEmpty ? Icons.assignment_add : Icons.inbox_rounded,
+                        size: 36,
+                        color: AppColors.primary,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Coba ubah kata kunci pencarian atau reset filter divisi.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                    const SizedBox(height: 14),
+                    Text(
+                      tasks.isEmpty
+                          ? 'Belum Ada Tugas di ${state.currentCompany.name}'
+                          : 'Tidak Ada Tugas yang Cocok',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      tasks.isEmpty
+                          ? 'Perusahaan siap diinput secara manual. Mulai dengan membuat tugas baru untuk tim Anda.'
+                          : 'Coba ubah kata kunci pencarian atau reset filter divisi dan status.',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _searchQuery = '';
-                          _searchController.clear();
-                          _selectedDivision = 'Semua Divisi';
-                          _selectedEmployeeId = 'ALL';
-                        });
-                      },
-                      child: const Text('Reset Filter', style: TextStyle(fontWeight: FontWeight.bold)),
-                    ),
+                    const SizedBox(height: 16),
+                    if (tasks.isEmpty && state.isAdmin)
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          CreateTaskBottomSheet.show(
+                            context,
+                            employees: employees,
+                            onCreateTask: (newTask) {
+                              state.createTask(newTask);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Tugas "${newTask.title}" berhasil dibuat!'),
+                                  backgroundColor: AppColors.primaryDark,
+                                ),
+                              );
+                            },
+                          );
+                        },
+                        icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                        label: const Text('Buat Tugas Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      )
+                    else if (tasks.isNotEmpty)
+                      TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _searchQuery = '';
+                            _searchController.clear();
+                            _selectedDivision = 'Semua Divisi';
+                            _selectedEmployeeId = 'ALL';
+                          });
+                        },
+                        child: const Text('Reset Filter', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
                   ],
                 ),
               ),

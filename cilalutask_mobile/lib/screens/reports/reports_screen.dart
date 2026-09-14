@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../data/mock_data.dart';
+import '../../models/task.dart';
 import '../../state/app_state_scope.dart';
 import '../../widgets/modals/export_report_bottom_sheet.dart';
 
@@ -25,6 +26,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
   @override
   Widget build(BuildContext context) {
     final state = AppStateScope.of(context);
+    final isBlank = state.isBlankMode || state.tasks.isEmpty;
+    final totalTasks = state.tasks.length;
+    final completedTasks = state.tasks.where((t) => t.status == TaskStatus.completed).length;
+    final completionRate = isBlank
+        ? (totalTasks > 0 ? ((completedTasks / totalTasks) * 100).toStringAsFixed(1) : '0.0')
+        : '92.4';
 
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -48,8 +55,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Kinerja & Analisis',
                       style: TextStyle(
                         fontSize: 18,
@@ -58,8 +65,8 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                     Text(
-                      'Evaluasi efisiensi operasional tim',
-                      style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      '${state.currentCompany.name} (${state.currentCompany.code})',
+                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
                     ),
                   ],
                 ),
@@ -174,9 +181,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  const Text(
-                    '92.4%',
-                    style: TextStyle(
+                  Text(
+                    '$completionRate%',
+                    style: const TextStyle(
                       fontSize: 34,
                       fontWeight: FontWeight.w900,
                       color: Colors.white,
@@ -191,14 +198,14 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.success.withOpacity(0.4)),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.trending_up_rounded, size: 14, color: Color(0xFF6EE7B7)),
-                        SizedBox(width: 4),
+                        const Icon(Icons.trending_up_rounded, size: 14, color: Color(0xFF6EE7B7)),
+                        const SizedBox(width: 4),
                         Text(
-                          '+4.2%',
-                          style: TextStyle(
+                          isBlank ? 'Aktif' : '+4.2%',
+                          style: const TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF6EE7B7),
@@ -210,9 +217,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
-                'Lebih tinggi dari rerata bulan April (88.2%)',
-                style: TextStyle(fontSize: 12, color: Color(0xFFBFDBFE)),
+              Text(
+                isBlank
+                    ? '$completedTasks dari $totalTasks tugas selesai'
+                    : 'Lebih tinggi dari rerata bulan sebelumnya (88.2%)',
+                style: const TextStyle(fontSize: 12, color: Color(0xFFBFDBFE)),
               ),
               const SizedBox(height: 14),
 
@@ -226,7 +235,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: 0.924,
+                  widthFactor: totalTasks > 0 ? (completedTasks / totalTasks).clamp(0.0, 1.0) : 0.0,
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
@@ -242,6 +251,53 @@ class _ReportsScreenState extends State<ReportsScreen> {
         ),
         const SizedBox(height: 14),
 
+        if (totalTasks == 0) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: const BoxDecoration(
+                    color: AppColors.surfaceSecondary,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.analytics_outlined, size: 44, color: AppColors.textMuted),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Belum Ada Data Laporan di ${state.currentCompany.name}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Data analitik efisiensi, ketepatan waktu, dan produktivitas divisi akan dikalkulasi secara otomatis setelah Anda menerbitkan tugas dan tim mulai menyelesaikan pekerjaannya.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.45),
+                ),
+                if (state.isAdmin) ...[
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () => state.setTab(1),
+                    icon: const Icon(Icons.add_task_rounded, size: 16, color: Colors.white),
+                    label: const Text('Mulai Buat Tugas', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ] else ...[
         // 4. Two-Column Sub-Metrics
         Row(
           children: [
@@ -702,8 +758,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
       ],
-    );
-  }
+      const SizedBox(height: 24),
+    ],
+  );
+}
 }

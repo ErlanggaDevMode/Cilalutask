@@ -1,59 +1,89 @@
-# CILULATAKS Mobile (Dart & Flutter)
+# CILALUTASK Mobile (Dart & Flutter)
 
-Aplikasi mobile korporat **CILULATAKS** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, dan kolaborasi terpadu.
+Aplikasi mobile korporat **CILALUTASK** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, komunikasi chat multi-saluran, serta **arsitektur Multi-Perusahaan dengan Mode Data Bersih (Blank Slate) & Alur Persetujuan Karyawan (Admin Approval Workflow)**.
 
 Dibangun dengan arsitektur **Feature-First / Clean Architecture**, Flutter 3.x, dan Dart 3.x modern.
 
 ---
 
+## 🌟 Fitur Baru: Multi-Company & Blank State Ready
+
+### 🏢 1. Arsitektur Multi-Perusahaan (Multi-Tenant by Company ID)
+- **ID / Kode Perusahaan Unik**: Setiap perusahaan memiliki kode unik (contoh: `CILALU-88`, `SINERGI-01`, `CORP-4821`).
+- **Kartu Identitas Perusahaan**: Tersedia kartu identitas perusahaan dengan tombol **Salin Kode (Copy)** di Tab Tim dan Profil.
+- **Peralihan Perusahaan (Company Switcher)**: Admin dapat membuat dan beralih antar perusahaan secara instan.
+
+### 🧹 2. Mode Data Bersih (Blank Slate) untuk Input Manual Admin
+- **Mulai dari Nol (100% Blank)**: Saat Admin membuat perusahaan baru melalui tab **Daftar PT**, sistem otomatis dimulai dalam status bersih tanpa data tiruan (dummy).
+- **Input Manual Penuh oleh Admin**:
+  - Admin dapat membuat tugas baru (`+ Buat Tugas Baru`)
+  - Admin dapat mengunggah SOP operasional (`+ Unggah SOP`)
+  - Admin dapat membuat saluran chat divisi (`+ Saluran`)
+  - Admin dapat menyetujui dan menugaskan karyawan yang bergabung
+- **Empty State Premium**: Jika belum ada data yang diinput, setiap tab (Beranda, Tugas, SOP, Laporan, Chat, Tim) menampilkan kartu antarmuka yang bersih, elegan, dan tombol aksi cepat untuk input pertama.
+- **Pengalih Mode di Profil**: Melalui menu profil, Admin dapat beralih kapan saja antara **Reset ke Blank (Data Bersih)** dan **Muat Data Demo (Contoh)**.
+
+### 👥 3. Alur Gabung Karyawan & Persetujuan Admin (Join Approval Workflow)
+1. **Calon Karyawan Mengajukan Permohonan**:
+   - Di halaman login, pilih tab **Gabung Tim**.
+   - Masukkan **ID / Kode Perusahaan** (misal: `CILALU-88` atau kode perusahaan yang baru dibuat).
+   - Isi Nama Lengkap, Divisi Kerja, Posisi/Jabatan, Email, dan Kata Sandi.
+   - Tekan **Kirim Permohonan Bergabung**.
+2. **Status Menunggu Persetujuan (Pending)**:
+   - Karyawan langsung melihat kartu status: **⏳ Menunggu Persetujuan Admin**.
+   - Karyawan belum dapat mengakses dashboard sampai disetujui Admin.
+3. **Notifikasi & Review Admin Real-time**:
+   - Admin pengelola perusahaan menerima notifikasi real-time seketika: *"Permintaan Bergabung Baru dari [Nama] ([Divisi])"*.
+   - Di Tab Tim muncul banner perhatian: *"[X] Permohonan Karyawan Baru Menunggu Persetujuan"*.
+4. **Keputusan Admin (Accept / Reject)**:
+   - Admin membuka sheet **Permintaan Bergabung Tim**.
+   - Admin meninjau data pelamar (Nama, Divisi, Role, Email, Foto).
+   - Klik **Terima (Accept)** untuk mengesahkan karyawan masuk ke daftar pekerja aktif, atau **Tolak (Reject)**.
+5. **Karyawan Resmi Bergabung**:
+   - Status permohonan karyawan otomatis berubah menjadi **Diterima (Approved)**.
+   - Karyawan dapat langsung masuk ke dashboard dan mulai memperbarui progres tugas divisi.
+
+---
+
 ## 📱 Fitur Utama & Otoritas Akses (RBAC)
 
-### 🔐 1. Halaman Masuk Multi-Peran (Login Screen)
-- **Pemilihan Peran Interaktif**: Pilihan masuk sebagai **Admin (Manager)** atau **User (Karyawan)**.
-- **Dukungan Karyawan Lengkap**: Dapat memilih akun karyawan spesifik (Kevin Maulana, Budi Santoso, Nadia Salsabila, Rina Wulandari).
-- **Tombol Demo 1-Klik**: Masuk instan untuk pengujian demo cepat (`Demo Admin`, `Demo User IT`, `Demo User Ops`).
-- **Ganti Akun & Keluar**: Akses ganti akun kapan saja melalui avatar profil di App Bar.
+### 🔐 1. Halaman Masuk 3 Tab (Login, Daftar PT, Gabung Tim)
+- **Tab 1: Masuk**:
+  - Pilihan peran masuk sebagai **Admin (Manager)** atau **User (Karyawan)**.
+  - Pilihan perusahaan aktif.
+  - Pintasan Demo Cepat: `Demo Admin`, `Admin Blank (Bersih 100%)`, `Demo Karyawan`.
+- **Tab 2: Daftar PT (Admin Baru)**:
+  - Pendaftaran perusahaan baru dengan saran Kode ID otomatis.
+  - Memulai dashboard dalam mode **Blank** untuk input manual.
+- **Tab 3: Gabung Tim (Karyawan)**:
+  - Input Kode ID Perusahaan tujuan & pengajuan akun karyawan.
+  - Kartu pemantau status persetujuan langsung (Pending / Approved / Rejected).
 
 ### 🛡️ 2. Aturan Hak Akses (Role-Based Access Control)
 - **User (Karyawan)**:
-  - **Hanya User** yang dapat memperbarui progres tugas (`Update Progres`), mencentang subtask checklist, dan mengajukan review tugas.
+  - **Hanya User** yang dapat memperbarui checklist subtask & progres tugas (`Update Progres`).
   - Membaca dan mengonfirmasi kepatuhan SOP digital.
   - Berkomunikasi via Saluran Chat Tim dan Pesan Langsung (DM).
-  - *Dibatasi*: Tidak dapat memberikan/membuat tugas baru dan tidak dapat mereview/menyetujui tugas.
+  - *Dibatasi*: Tidak dapat menerbitkan tugas baru dan tidak dapat mereview/menyetujui tugas.
 - **Admin (Manager)**:
   - **Hanya Admin** yang dapat mereview dan memberikan persetujuan tugas (`Review & Persetujuan`).
   - **Hanya Admin** yang dapat membuat tugas baru (`Buat Tugas Baru` / `+ Tugas`) dan mendelegasikannya kepada karyawan.
-  - Mengunggah & memperbarui dokumen SOP baru.
+  - Mengelola dan menyetujui permohonan gabung karyawan (`Join Requests`).
+  - Menerbitkan dokumen SOP baru & membuat saluran chat baru.
   - Mengirimkan siaran pengumuman (Broadcast) ke seluruh divisi.
 
 ### 📑 3. Navigasi 6 Tab Terpadu
-1. **Beranda (Home)**: Metrik efisiensi tim, aksi cepat adaptif peran, dan daftar tugas mendesak.
+1. **Beranda (Home)**: Metrik tugas aktif, kartu sambutan perusahaan, aksi cepat adaptif peran, dan daftar tugas mendesak.
 2. **Tugas (Tasks)**: Manajemen tugas dengan filter divisi, status, dan aksi terpisah sesuai peran (User: Update Progres, Admin: Review & + Tugas).
 3. **Pusat SOP (Knowledge Base)**: Direktori dokumen SOP, filter kepatuhan, dan pembaca dokumen interaktif.
-4. **Kinerja & Analisis (Reports)**: Laporan analitik, leaderboard karyawan, dan rekomendasi produktivitas.
-5. **💬 Tab Chat (Kolaborasi Tim)** *(Tab Baru di antara Laporan & Tim)*:
-   - **Saluran Tim (Channels)**: `#umum`, `#operasional-gudang`, `#it-tech-core`, `#pemasaran-kreatif`, `#keuangan-pajak`.
-   - **Pesan Langsung (Direct Messages)**: Chat 1-on-1 dengan seluruh karyawan.
-   - **Fitur Chat**: Bubble obrolan modern, avatar, role badge, timestamp, indikator belum dibaca, dan input pesan responsif.
-6. **Tim & Notifikasi (Team)**: Daftar anggota divisi dengan aksi kontak/chat dan riwayat notifikasi real-time.
-
-### 🔔 4. Sistem Notifikasi Mobile Lancar & Real-time
-- **In-App Heads-Up Banner**: Banner mengambang meluncur dari atas dengan animasi halus (`SlideTransition` + `FadeTransition`), feedback getaran haptik, geser ke atas untuk tutup, dan ketuk untuk langsung membuka tugas/chat terkait.
-- **Pusat Notifikasi Instan (Sheet)**: Mengetuk lonceng di App Bar langsung memunculkan sheet notifikasi live dengan filter kategori dan indikator real-time.
-- **Event Dispatcher Real-time**: Otomatis memicu notifikasi saat tugas diterbitkan, progres subtask diperbarui, tugas disetujui, SOP diunggah, atau pesan chat dikirim.
-- **Simulasi Interaktif Rekan Tim**: Tombol uji coba instan `Uji Real-time (+)` untuk menguji kelancaran notifikasi secara langsung.
-
-### 🗂️ 5. Interactive Bottom Sheets & Modals
-- `InAppNotificationBanner`: Banner melayang heads-up dengan auto-dismiss 4 detik.
-- `NotificationCenterBottomSheet`: Pusat kontrol notifikasi cepat dengan filter kategori.
-- `CreateTaskBottomSheet`: Form pembuatan tugas baru + checklist subtask dinamis.
-- `UpdateProgressBottomSheet`: Checklist subtask interaktif dengan auto-recalculated percentage.
-- `ReviewTaskBottomSheet`: Rincian tugas untuk persetujuan manajerial.
-- `SopDetailBottomSheet`: Reader SOP berstruktur dengan tombol verifikasi kepatuhan digital.
-- `UploadSopBottomSheet`: Form pengunggahan dan penerbitan SOP baru.
-- `ExportReportBottomSheet`: Pilihan format ekspor (PDF Eksekutif, Excel XLSX, CSV).
-- `BroadcastBottomSheet`: Siaran pengumuman per divisi dengan log instan ke feed aktivitas.
-- `ProfileBottomSheet`: Profil pengguna, otoritas akun, & tombol keluar/ganti akun.
+4. **Kinerja & Analisis (Reports)**: Laporan analitik dinamis (otomatis beradaptasi dengan mode blank), leaderboard tim, dan ekspor data.
+5. **💬 Tab Chat (Kolaborasi Tim)**:
+   - **Saluran Tim (Channels)**: Saluran divisi terpisah + tombol Admin untuk membuat saluran baru (`+ Saluran`).
+   - **Pesan Langsung (Direct Messages)**: Chat 1-on-1 dengan seluruh karyawan perusahaan.
+6. **Tim & Notifikasi (Team)**:
+   - Kartu Identitas Perusahaan & Kode ID dengan tombol salin.
+   - Banner notifikasi permohonan join karyawan (Admin).
+   - Daftar anggota tim aktif dan riwayat notifikasi real-time.
 
 ---
 
@@ -64,18 +94,19 @@ Dibangun dengan arsitektur **Feature-First / Clean Architecture**, Flutter 3.x, 
 cd cilalutask_mobile
 ```
 
-### 2. Unduh dependensi (jika baru di-clone)
+### 2. Unduh dependensi
 ```bash
 flutter pub get
 ```
 
-### 3. Analisis kode & verifikasi
+### 3. Analisis kode & jalankan unit/widget test
 ```bash
 flutter analyze
 flutter test
 ```
+*Hasil pengujian: `No issues found!` & `All tests passed!` (100% Lulus).*
 
-### 4. Jalankan pada emulator / device / Chrome
+### 4. Jalankan aplikasi
 ```bash
 flutter run
 ```
@@ -99,38 +130,48 @@ cilalutask_mobile/
 │   ├── main.dart                          # Entry point aplikasi
 │   ├── core/
 │   │   ├── theme/
-│   │   │   ├── app_colors.dart            # Token warna korporat
+│   │   │   ├── app_colors.dart            # Token warna korporat & semantik
 │   │   │   └── app_theme.dart             # ThemeData & komponen style
 │   │   └── widgets/
 │   │       ├── custom_avatar.dart         # Avatar dengan network fallback
 │   │       └── custom_badge.dart          # Badge prioritas & divisi
 │   ├── models/
+│   │   ├── company.dart                   # Model Company, JoinRequest & Status
 │   │   ├── task.dart                      # Model Tugas & Subtask
 │   │   ├── sop.dart                       # Model Dokumen SOP
 │   │   ├── employee.dart                  # Model Assignee & Performa
 │   │   ├── activity.dart                  # Model Aktivitas Tim
-│   │   └── notification_item.dart         # Model Notifikasi
+│   │   ├── chat_model.dart                # Model ChatChannel & ChatMessage
+│   │   ├── notification_item.dart         # Model Notifikasi
+│   │   └── user_role.dart                 # Enum UserRole (Admin / User)
 │   ├── data/
-│   │   └── mock_data.dart                 # Data awal aplikasi
+│   │   └── mock_data.dart                 # Data demo awal
 │   ├── state/
-│   │   ├── app_state_controller.dart      # Business logic & reactive state
+│   │   ├── app_state_controller.dart      # Reactive business logic & multi-tenant state
 │   │   └── app_state_scope.dart           # InheritedNotifier provider
 │   ├── screens/
-│   │   ├── main_navigation_screen.dart    # App Bar + BottomNav + Tab Switcher
-│   │   ├── home/home_screen.dart          # Tab Beranda
-│   │   ├── tasks/tasks_screen.dart        # Tab Tugas
-│   │   ├── sop/sop_screen.dart            # Tab SOP
-│   │   ├── reports/reports_screen.dart    # Tab Laporan & Kinerja
-│   │   └── team/team_screen.dart          # Tab Tim & Notifikasi
+│   │   ├── auth/
+│   │   │   └── login_screen.dart          # 3 Tab: Masuk, Daftar PT, Gabung Tim
+│   │   ├── main_navigation_screen.dart    # App Bar + BottomNav 6 Tab
+│   │   ├── home/home_screen.dart          # Tab Beranda + Blank State handling
+│   │   ├── tasks/tasks_screen.dart        # Tab Tugas + Blank State handling
+│   │   ├── sop/sop_screen.dart            # Tab SOP + Blank State handling
+│   │   ├── reports/reports_screen.dart    # Tab Laporan + Blank State handling
+│   │   ├── chat/
+│   │   │   ├── chat_screen.dart           # Tab Chat + Tambah Saluran dialog
+│   │   │   └── chat_room_screen.dart      # Ruang Obrolan Saluran / DM
+│   │   └── team/team_screen.dart          # Tab Tim + ID Perusahaan & Join Banner
 │   └── widgets/modals/
-│       ├── create_task_bottom_sheet.dart
-│       ├── update_progress_bottom_sheet.dart
-│       ├── review_task_bottom_sheet.dart
-│       ├── sop_detail_bottom_sheet.dart
-│       ├── upload_sop_bottom_sheet.dart
-│       ├── export_report_bottom_sheet.dart
-│       ├── broadcast_bottom_sheet.dart
-│       └── profile_bottom_sheet.dart
+│       ├── join_requests_bottom_sheet.dart# Modal persetujuan permohonan join (Admin)
+│       ├── create_task_bottom_sheet.dart  # Form pembuatan tugas baru
+│       ├── update_progress_bottom_sheet.dart # Checklist progres subtask
+│       ├── review_task_bottom_sheet.dart  # Review manajerial
+│       ├── sop_detail_bottom_sheet.dart   # Reader SOP
+│       ├── upload_sop_bottom_sheet.dart   # Upload SOP
+│       ├── export_report_bottom_sheet.dart# Ekspor PDF/Excel
+│       ├── broadcast_bottom_sheet.dart    # Broadcast pengumuman
+│       ├── notification_center_bottom_sheet.dart # Pusat notifikasi
+│       └── profile_bottom_sheet.dart      # Info perusahaan & pengalih Blank/Demo
 └── test/
-    └── widget_test.dart                   # Smoke test verifikasi
+    └── widget_test.dart                   # Automated tests: Auth, Multi-Company, Join Flow, Realtime
 ```

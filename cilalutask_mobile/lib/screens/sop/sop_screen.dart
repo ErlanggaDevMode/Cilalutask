@@ -533,17 +533,95 @@ class _SopScreenState extends State<SopScreen> {
         const SizedBox(height: 10),
 
         // SOP List Cards
-        ...filteredSops.map((sop) {
-          final isBookmarked = sop.isBookmarked;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
+        if (filteredSops.isEmpty) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.border),
             ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    sops.isEmpty ? Icons.note_add_outlined : Icons.find_in_page_outlined,
+                    size: 36,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  sops.isEmpty
+                      ? 'Belum Ada Dokumen SOP di ${state.currentCompany.name}'
+                      : 'Tidak Ada Dokumen yang Cocok',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  sops.isEmpty
+                      ? 'Perusahaan dalam status blank. Anda dapat mengunggah SOP dan panduan kerja untuk tim.'
+                      : 'Coba ubah kata kunci pencarian atau ganti kategori divisi.',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                if (sops.isEmpty && state.isAdmin)
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      UploadSopBottomSheet.show(
+                        context,
+                        onAddSop: (newSop) {
+                          state.addSop(newSop);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('SOP "${newSop.title}" berhasil diunggah!'),
+                              backgroundColor: AppColors.primaryDark,
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.upload_file_rounded, size: 16, color: Colors.white),
+                    label: const Text('Unggah SOP Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  )
+                else if (sops.isNotEmpty)
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _searchQuery = '';
+                        _searchController.clear();
+                        _selectedCategory = 'Semua';
+                      });
+                    },
+                    child: const Text('Reset Filter', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+              ],
+            ),
+          ),
+        ] else ...[
+          ...filteredSops.map((sop) {
+            final isBookmarked = sop.isBookmarked;
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
+              ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -783,10 +861,11 @@ class _SopScreenState extends State<SopScreen> {
             ),
           );
         }),
-        const SizedBox(height: 20),
       ],
-    );
-  }
+      const SizedBox(height: 20),
+    ],
+  );
+}
 
   Widget _buildHeaderIconButton({required IconData icon, required VoidCallback onTap}) {
     return InkWell(

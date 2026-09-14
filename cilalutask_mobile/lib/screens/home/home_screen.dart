@@ -19,9 +19,12 @@ class HomeScreen extends StatelessWidget {
     final tasks = state.tasks;
     final activities = state.activities;
 
+    final isBlank = state.isBlankMode;
     final activeCount = tasks.where((t) => t.status == TaskStatus.inProgress).length;
-    final completedCount = tasks.where((t) => t.status == TaskStatus.completed).length + 40; // baseline 42
-    final reviewCount = state.activeReviewCount > 0 ? state.activeReviewCount : 7;
+    final completedCount = isBlank
+        ? tasks.where((t) => t.status == TaskStatus.completed).length
+        : (tasks.where((t) => t.status == TaskStatus.completed).length + 40);
+    final reviewCount = isBlank ? state.activeReviewCount : (state.activeReviewCount > 0 ? state.activeReviewCount : 7);
     final nearDeadlineCount = tasks.where((t) => t.isUrgentDeadline).length;
 
     final approachingTasks = tasks
@@ -85,7 +88,7 @@ class HomeScreen extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                user.role,
+                                state.currentUserRoleTitle,
                                 style: const TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -99,7 +102,7 @@ class HomeScreen extends StatelessWidget {
 
                         // Greeting
                         Text(
-                          'Halo, ${user.name}',
+                          'Halo, ${state.currentUserName}',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -111,7 +114,7 @@ class HomeScreen extends StatelessWidget {
 
                         // Subtitle
                         Text(
-                          'Operasional berjalan lancar • ${user.targetQuarterPercent}% target kuartal tercapai',
+                          '${state.currentCompany.name} (${state.currentCompany.code}) • Operasional berjalan lancar',
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -469,7 +472,49 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 10),
 
-        ...approachingTasks.map((task) {
+        if (approachingTasks.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tasks.isEmpty ? 'Belum Ada Tugas Aktif' : 'Semua Tugas Terkendali',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        tasks.isEmpty
+                            ? 'Klik "+ Buat Tugas Baru" di atas untuk menambahkan tugas perdana.'
+                            : 'Tidak ada tugas yang mendekati batas waktu hari ini.',
+                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          )
+        else
+          ...approachingTasks.map((task) {
           return InkWell(
             onTap: () {
               if (state.isUser) {
@@ -671,13 +716,41 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
 
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.border),
-          ),
+        if (activities.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Center(
+              child: Column(
+                children: [
+                  Icon(Icons.history_toggle_off_rounded, color: AppColors.textMuted, size: 32),
+                  SizedBox(height: 8),
+                  Text(
+                    'Belum Ada Aktivitas',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Aktivitas pembuatan tugas, penyelesaian subtask, dan SOP akan tercatat di sini.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
           child: Column(
             children: activities.asMap().entries.map((entry) {
               final index = entry.key;

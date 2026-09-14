@@ -10,7 +10,7 @@ final CurrentUser kCurrentUser = CurrentUser(
   name: 'Sarah Pratama',
   role: 'Admin / Manager',
   email: 'sarah.pratama@cilulataks.id',
-  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
+  avatar: '',
   division: 'Operations & Strategy',
   targetQuarterPercent: 88,
   teamEfficiencyPercent: 94,
