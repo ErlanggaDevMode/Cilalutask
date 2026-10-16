@@ -64,6 +64,22 @@ class Subtask {
       completed: completed ?? this.completed,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'completed': completed,
+    };
+  }
+
+  factory Subtask.fromMap(Map<String, dynamic> map) {
+    return Subtask(
+      id: map['id'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      completed: map['completed'] as bool? ?? false,
+    );
+  }
 }
 
 class Task {
@@ -130,6 +146,56 @@ class Task {
       progressPercent: progressPercent ?? this.progressPercent,
       updatedAt: updatedAt ?? this.updatedAt,
       needsReview: needsReview ?? this.needsReview,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'division': division,
+      'priority': priority.label,
+      'status': status.label,
+      'deadlineLabel': deadlineLabel,
+      'isUrgentDeadline': isUrgentDeadline,
+      'isToday': isToday,
+      'subtasks': subtasks.map((s) => s.toMap()).toList(),
+      'assignee': assignee.toMap(),
+      'progressPercent': progressPercent,
+      'updatedAt': updatedAt,
+      'needsReview': needsReview,
+    };
+  }
+
+  factory Task.fromMap(Map<String, dynamic> map) {
+    return Task(
+      id: map['id'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      division: map['division'] as String? ?? '',
+      priority: PriorityType.fromString(map['priority'] as String? ?? ''),
+      status: TaskStatus.fromString(map['status'] as String? ?? ''),
+      deadlineLabel: map['deadlineLabel'] as String? ?? '',
+      isUrgentDeadline: map['isUrgentDeadline'] as bool? ?? false,
+      isToday: map['isToday'] as bool? ?? false,
+      subtasks: (map['subtasks'] as List<dynamic>?)
+              ?.map((s) => Subtask.fromMap(s as Map<String, dynamic>))
+              .toList() ??
+          [],
+      assignee: map['assignee'] != null
+          ? Assignee.fromMap(map['assignee'] as Map<String, dynamic>)
+          : const Assignee(
+              id: 'emp-unknown',
+              name: 'Staff',
+              shortName: 'Staff',
+              avatar: '',
+              division: 'Umum',
+              role: 'Karyawan',
+            ),
+      progressPercent: map['progressPercent'] as int? ?? 0,
+      updatedAt: map['updatedAt'] as String?,
+      needsReview: map['needsReview'] as bool? ?? false,
     );
   }
 }

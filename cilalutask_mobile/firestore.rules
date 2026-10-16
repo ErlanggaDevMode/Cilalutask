@@ -1,0 +1,42 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Ping document for connectivity check
+    match /_ping/{doc} {
+      allow read: if true;
+    }
+
+    // Companies collection
+    match /companies/{companyCode} {
+      // Anyone can read company info (needed for join flow)
+      allow read: if true;
+      // Anyone authenticated can create/update their own company
+      allow write: if true;
+
+      // Sub-collections under each company
+      match /tasks/{taskId} {
+        allow read, write: if true;
+      }
+      match /sops/{sopId} {
+        allow read, write: if true;
+      }
+      match /members/{memberId} {
+        allow read, write: if true;
+      }
+      match /channels/{channelId} {
+        allow read, write: if true;
+      }
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+      match /join_requests/{requestId} {
+        allow read, write: if true;
+      }
+      match /notifications/{notifId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}

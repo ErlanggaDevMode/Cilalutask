@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../models/task.dart';
@@ -20,18 +21,24 @@ class HomeScreen extends StatelessWidget {
     final activities = state.activities;
 
     final isBlank = state.isBlankMode;
-    final activeCount = tasks.where((t) => t.status == TaskStatus.inProgress).length;
+    final activeCount = tasks
+        .where((t) => t.status == TaskStatus.inProgress)
+        .length;
     final completedCount = isBlank
         ? tasks.where((t) => t.status == TaskStatus.completed).length
         : (tasks.where((t) => t.status == TaskStatus.completed).length + 40);
-    final reviewCount = isBlank ? state.activeReviewCount : (state.activeReviewCount > 0 ? state.activeReviewCount : 7);
+    final reviewCount = isBlank
+        ? state.activeReviewCount
+        : (state.activeReviewCount > 0 ? state.activeReviewCount : 7);
     final nearDeadlineCount = tasks.where((t) => t.isUrgentDeadline).length;
 
     final approachingTasks = tasks
-        .where((t) =>
-            t.isUrgentDeadline ||
-            t.deadlineLabel.contains('Hari') ||
-            t.deadlineLabel.contains('Besok'))
+        .where(
+          (t) =>
+              t.isUrgentDeadline ||
+              t.deadlineLabel.contains('Hari') ||
+              t.deadlineLabel.contains('Besok'),
+        )
         .take(3)
         .toList();
 
@@ -70,7 +77,10 @@ class HomeScreen extends StatelessWidget {
                       children: [
                         // Role Pill
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(20),
@@ -143,7 +153,11 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.dashboard_rounded, color: Colors.white, size: 20),
+                      child: const Icon(
+                        Icons.dashboard_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -158,7 +172,11 @@ class HomeScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.verified_user_rounded, size: 16, color: AppColors.successDark),
+                      const Icon(
+                        Icons.verified_user_rounded,
+                        size: 16,
+                        color: AppColors.successDark,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         'Efisiensi Tim: ${user.teamEfficiencyPercent}%',
@@ -183,7 +201,11 @@ class HomeScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.primary),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                       ],
                     ),
                   ),
@@ -229,7 +251,9 @@ class HomeScreen extends StatelessWidget {
                         state.createTask(newTask);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
+                            content: Text(
+                              'Tugas "${newTask.title}" berhasil diterbitkan!',
+                            ),
                             backgroundColor: AppColors.primaryDark,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -242,8 +266,13 @@ class HomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -260,7 +289,9 @@ class HomeScreen extends StatelessWidget {
                         state.addSop(newSop);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Dokumen "${newSop.title}" berhasil diterbitkan!'),
+                            content: Text(
+                              'Dokumen "${newSop.title}" berhasil diterbitkan!',
+                            ),
                             backgroundColor: AppColors.primaryDark,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -268,11 +299,20 @@ class HomeScreen extends StatelessWidget {
                       },
                     );
                   },
-                  icon: const Icon(Icons.file_upload_outlined, size: 18, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.file_upload_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   label: const Text('Unggah SOP'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     side: const BorderSide(color: AppColors.border),
                     backgroundColor: Colors.white,
                   ),
@@ -285,7 +325,8 @@ class HomeScreen extends StatelessWidget {
                 onTap: () {
                   BroadcastBottomSheet.show(
                     context,
-                    onSendBroadcast: (msg, div) => state.sendBroadcast(msg, div),
+                    onSendBroadcast: (msg, div) =>
+                        state.sendBroadcast(msg, div),
                   );
                 },
                 borderRadius: BorderRadius.circular(12),
@@ -297,7 +338,11 @@ class HomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: const Icon(Icons.campaign_outlined, color: AppColors.textSecondary, size: 20),
+                  child: const Icon(
+                    Icons.campaign_outlined,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -310,13 +355,21 @@ class HomeScreen extends StatelessWidget {
                 flex: 5,
                 child: ElevatedButton.icon(
                   onPressed: () => state.setTab(1),
-                  icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                  icon: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    size: 18,
+                  ),
                   label: const Text('Update Progres'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -327,11 +380,20 @@ class HomeScreen extends StatelessWidget {
                 flex: 4,
                 child: OutlinedButton.icon(
                   onPressed: () => state.setTab(4),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.primary),
+                  icon: const Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
                   label: const Text('Chat Tim'),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     side: const BorderSide(color: AppColors.border),
                     backgroundColor: Colors.white,
                   ),
@@ -351,7 +413,11 @@ class HomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: const Icon(Icons.menu_book_outlined, color: AppColors.textSecondary, size: 20),
+                  child: const Icon(
+                    Icons.menu_book_outlined,
+                    color: AppColors.textSecondary,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -445,7 +511,11 @@ class HomeScreen extends StatelessWidget {
           children: [
             const Row(
               children: [
-                Icon(Icons.calendar_month_rounded, size: 16, color: AppColors.danger),
+                Icon(
+                  Icons.calendar_month_rounded,
+                  size: 16,
+                  color: AppColors.danger,
+                ),
                 SizedBox(width: 6),
                 Text(
                   'Mendekati Batas Waktu',
@@ -489,7 +559,11 @@ class HomeScreen extends StatelessWidget {
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 22),
+                  child: const Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -497,15 +571,24 @@ class HomeScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tasks.isEmpty ? 'Belum Ada Tugas Aktif' : 'Semua Tugas Terkendali',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        tasks.isEmpty
+                            ? 'Belum Ada Tugas Aktif'
+                            : 'Semua Tugas Terkendali',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
                         tasks.isEmpty
                             ? 'Klik "+ Buat Tugas Baru" di atas untuk menambahkan tugas perdana.'
                             : 'Tidak ada tugas yang mendekati batas waktu hari ini.',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
@@ -515,185 +598,210 @@ class HomeScreen extends StatelessWidget {
           )
         else
           ...approachingTasks.map((task) {
-          return InkWell(
-            onTap: () {
-              if (state.isUser) {
-                UpdateProgressBottomSheet.show(
-                  context,
-                  task: task,
-                  onSaveProgress: (id, subtasks, pct) {
-                    state.saveProgress(id, subtasks, pct);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Progres tugas berhasil diperbarui!'),
-                        backgroundColor: AppColors.primaryDark,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                );
-              } else if (state.isAdmin) {
-                ReviewTaskBottomSheet.show(
-                  context,
-                  task: task,
-                  onApproveTask: (id) {
-                    state.approveTask(id);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Tugas telah disetujui & ditandai selesai!'),
-                        backgroundColor: AppColors.primaryDark,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                );
-              }
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.02),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Deadline tag
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: task.isUrgentDeadline ? AppColors.dangerLight : AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(20),
+            return InkWell(
+              onTap: () {
+                if (state.isUser) {
+                  UpdateProgressBottomSheet.show(
+                    context,
+                    task: task,
+                    onSaveProgress: (id, subtasks, pct) {
+                      state.saveProgress(id, subtasks, pct);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Progres tugas berhasil diperbarui!'),
+                          backgroundColor: AppColors.primaryDark,
+                          behavior: SnackBarBehavior.floating,
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: task.isUrgentDeadline ? AppColors.danger : AppColors.primary,
-                                shape: BoxShape.circle,
+                      );
+                    },
+                  );
+                } else if (state.isAdmin) {
+                  ReviewTaskBottomSheet.show(
+                    context,
+                    task: task,
+                    onApproveTask: (id) {
+                      state.approveTask(id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Tugas telah disetujui & ditandai selesai!',
+                          ),
+                          backgroundColor: AppColors.primaryDark,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.02),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Deadline tag
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: task.isUrgentDeadline
+                                ? AppColors.dangerLight
+                                : AppColors.primaryLight,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: task.isUrgentDeadline
+                                      ? AppColors.danger
+                                      : AppColors.primary,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
+                              const SizedBox(width: 4),
+                              Text(
+                                task.deadlineLabel,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: task.isUrgentDeadline
+                                      ? AppColors.danger
+                                      : AppColors.primary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.more_vert_rounded,
+                          size: 16,
+                          color: AppColors.textMuted,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Title
+                    Text(
+                      task.title,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Progress
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Penyelesaian',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.textMuted,
+                          ),
+                        ),
+                        Text(
+                          '${task.progressPercent}%',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: task.progressPercent / 100,
+                        minHeight: 6,
+                        backgroundColor: AppColors.surfaceSecondary,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: AppColors.borderSubtle),
+                    const SizedBox(height: 8),
+
+                    // Assignee & Division
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            CustomAvatar(
+                              imageUrl: task.assignee.avatar,
+                              fallbackText: task.assignee.name,
+                              radius: 10,
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 6),
                             Text(
-                              task.deadlineLabel,
-                              style: TextStyle(
-                                fontSize: 11,
+                              task.assignee.shortName,
+                              style: const TextStyle(
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: task.isUrgentDeadline ? AppColors.danger : AppColors.primary,
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                      const Icon(Icons.more_vert_rounded, size: 16, color: AppColors.textMuted),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-
-                  // Title
-                  Text(
-                    task.title,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                      height: 1.3,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Progress
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Penyelesaian',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
-                      ),
-                      Text(
-                        '${task.progressPercent}%',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: task.progressPercent / 100,
-                      minHeight: 6,
-                      backgroundColor: AppColors.surfaceSecondary,
-                      valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1, color: AppColors.borderSubtle),
-                  const SizedBox(height: 8),
-
-                  // Assignee & Division
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          CustomAvatar(
-                            imageUrl: task.assignee.avatar,
-                            fallbackText: task.assignee.name,
-                            radius: 10,
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
                           ),
-                          const SizedBox(width: 6),
-                          Text(
-                            task.assignee.shortName,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceSecondary,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            task.division.contains('Finance')
+                                ? 'Div. Finance'
+                                : 'Div. IT Core',
                             style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 10,
                               color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        ],
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceSecondary,
-                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          task.division.contains('Finance') ? 'Div. Finance' : 'Div. IT Core',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          );
-        }),
+            );
+          }),
         const SizedBox(height: 16),
 
         // 5. Aktivitas Terbaru
@@ -727,11 +835,19 @@ class HomeScreen extends StatelessWidget {
             child: const Center(
               child: Column(
                 children: [
-                  Icon(Icons.history_toggle_off_rounded, color: AppColors.textMuted, size: 32),
+                  Icon(
+                    Icons.history_toggle_off_rounded,
+                    color: AppColors.textMuted,
+                    size: 32,
+                  ),
                   SizedBox(height: 8),
                   Text(
                     'Belum Ada Aktivitas',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   SizedBox(height: 2),
                   Text(
@@ -751,90 +867,102 @@ class HomeScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-          child: Column(
-            children: activities.asMap().entries.map((entry) {
-              final index = entry.key;
-              final act = entry.value;
-              final isSop = act.type == 'sop';
+            child: Column(
+              children: activities.asMap().entries.map((entry) {
+                final index = entry.key;
+                final act = entry.value;
+                final isSop = act.type == 'sop';
 
-              return Column(
-                children: [
-                  if (index > 0) const Divider(height: 18, color: AppColors.borderSubtle),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          CustomAvatar(
-                            imageUrl: act.userAvatar,
-                            fallbackText: act.userName,
-                            radius: 16,
-                          ),
-                          Positioned(
-                            right: -3,
-                            bottom: -3,
-                            child: Container(
-                              width: 14,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1),
-                              ),
-                              child: Icon(
-                                isSop ? Icons.check_circle_rounded : Icons.refresh_rounded,
-                                size: 12,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                return Column(
+                  children: [
+                    if (index > 0)
+                      const Divider(height: 18, color: AppColors.borderSubtle),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Stack(
+                          clipBehavior: Clip.none,
                           children: [
-                            RichText(
-                              text: TextSpan(
-                                style: const TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.3),
-                                children: [
-                                  TextSpan(
-                                    text: '${act.userName} ',
-                                    style: const TextStyle(fontWeight: FontWeight.bold),
-                                  ),
-                                  TextSpan(text: '${act.actionPrefix} '),
-                                  TextSpan(
-                                    text: act.targetObject,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                  if (act.actionSuffix != null)
-                                    TextSpan(text: ' ${act.actionSuffix}'),
-                                ],
-                              ),
+                            CustomAvatar(
+                              imageUrl: act.userAvatar,
+                              fallbackText: act.userName,
+                              radius: 16,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${act.timeAgo} • ${act.department}',
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppColors.textMuted,
+                            Positioned(
+                              right: -3,
+                              bottom: -3,
+                              child: Container(
+                                width: 14,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Icon(
+                                  isSop
+                                      ? Icons.check_circle_rounded
+                                      : Icons.refresh_rounded,
+                                  size: 12,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              );
-            }).toList(),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textPrimary,
+                                    height: 1.3,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: '${act.userName} ',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    TextSpan(text: '${act.actionPrefix} '),
+                                    TextSpan(
+                                      text: act.targetObject,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    if (act.actionSuffix != null)
+                                      TextSpan(text: ' ${act.actionSuffix}'),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${act.timeAgo} • ${act.department}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: AppColors.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
-        ),
         const SizedBox(height: 24),
       ],
     );

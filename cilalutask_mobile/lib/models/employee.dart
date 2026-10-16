@@ -9,6 +9,8 @@ class Assignee {
   final String role;
   final bool hasTeamBadge;
   final int teamCount;
+  final String email;
+  final String password;
 
   const Assignee({
     required this.id,
@@ -19,6 +21,8 @@ class Assignee {
     required this.role,
     this.hasTeamBadge = false,
     this.teamCount = 0,
+    this.email = '',
+    this.password = '',
   });
 
   Assignee copyWith({
@@ -30,6 +34,8 @@ class Assignee {
     String? role,
     bool? hasTeamBadge,
     int? teamCount,
+    String? email,
+    String? password,
   }) {
     return Assignee(
       id: id ?? this.id,
@@ -40,6 +46,38 @@ class Assignee {
       role: role ?? this.role,
       hasTeamBadge: hasTeamBadge ?? this.hasTeamBadge,
       teamCount: teamCount ?? this.teamCount,
+      email: email ?? this.email,
+      password: password ?? this.password,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'shortName': shortName,
+      'avatar': avatar,
+      'division': division,
+      'role': role,
+      'hasTeamBadge': hasTeamBadge,
+      'teamCount': teamCount,
+      'email': email,
+      'password': password,
+    };
+  }
+
+  factory Assignee.fromMap(Map<String, dynamic> map) {
+    return Assignee(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      shortName: map['shortName'] as String? ?? '',
+      avatar: map['avatar'] as String? ?? '',
+      division: map['division'] as String? ?? '',
+      role: map['role'] as String? ?? '',
+      hasTeamBadge: map['hasTeamBadge'] as bool? ?? false,
+      teamCount: map['teamCount'] as int? ?? 0,
+      email: map['email'] as String? ?? '',
+      password: map['password'] as String? ?? '',
     );
   }
 }

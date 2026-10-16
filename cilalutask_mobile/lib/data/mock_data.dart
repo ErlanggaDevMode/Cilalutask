@@ -26,6 +26,8 @@ final List<Assignee> kEmployees = [
     role: 'Lead Cloud Engineer',
     hasTeamBadge: true,
     teamCount: 2,
+    email: 'kevin.maulana@cilulataks.id',
+    password: 'password123',
   ),
   const Assignee(
     id: 'emp-2',
@@ -34,6 +36,8 @@ final List<Assignee> kEmployees = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
     division: 'Pemasaran',
     role: 'Senior Content Strategist',
+    email: 'nadia.salsabila@cilulataks.id',
+    password: 'password123',
   ),
   const Assignee(
     id: 'emp-3',
@@ -42,6 +46,8 @@ final List<Assignee> kEmployees = [
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
     division: 'Operasional',
     role: 'Supervisor Gudang',
+    email: 'budi.santoso@cilulataks.id',
+    password: 'password123',
   ),
   const Assignee(
     id: 'emp-4',
@@ -50,6 +56,8 @@ final List<Assignee> kEmployees = [
     avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256',
     division: 'Finance & Akuntansi',
     role: 'Tax & Compliance Officer',
+    email: 'rian.dermawan@cilulataks.id',
+    password: 'password123',
   ),
   const Assignee(
     id: 'emp-5',
@@ -58,6 +66,8 @@ final List<Assignee> kEmployees = [
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=256',
     division: 'Operasional',
     role: 'Quality & Inbound Lead',
+    email: 'ahmad.fauzi@cilulataks.id',
+    password: 'password123',
   ),
   const Assignee(
     id: 'emp-6',
@@ -66,6 +76,8 @@ final List<Assignee> kEmployees = [
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=256',
     division: 'Pemasaran',
     role: 'Visual Designer',
+    email: 'dina.putri@cilulataks.id',
+    password: 'password123',
   ),
 ];
 

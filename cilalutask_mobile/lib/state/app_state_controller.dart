@@ -10,8 +10,16 @@ import '../models/user_role.dart';
 import '../models/chat_model.dart';
 import '../models/company.dart';
 import '../data/mock_data.dart';
+import '../services/local_storage_service.dart';
+import '../services/firestore_service.dart';
 
 class AppStateController extends ChangeNotifier {
+  final LocalStorageService _storage = LocalStorageService();
+  final FirestoreService _firestore = FirestoreService();
+  bool _isStorageLoaded = false;
+  bool get isStorageLoaded => _isStorageLoaded;
+  bool get isCloudConnected => _firestore.isAvailable;
+
   // Authentication & Role
   bool _isAuthenticated = false; // Starts at Login screen; allows instant demo login as Admin or Karyawan
   UserRole _currentUserRole = UserRole.admin;
@@ -42,6 +50,167 @@ class AppStateController extends ChangeNotifier {
 
   AppStateController() {
     _currentCompany = _companies.first;
+  }
+
+  Future<void> initStorage() async {
+    await _storage.init();
+
+    // Initialize Firestore (non-blocking — falls back gracefully if offline)
+    try {
+      await _firestore.init();
+    } catch (_) {
+      debugPrint('☁️ Firestore unavailable, using local storage only');
+    }
+
+    // 1. Load companies
+    final savedCompanies = await _storage.loadCompanies();
+    if (savedCompanies != null && savedCompanies.isNotEmpty) {
+      _companies = savedCompanies;
+    }
+
+    // 2. Load active company code
+    final activeCode = await _storage.loadCurrentCompanyCode();
+    if (activeCode != null) {
+      final found = _companies.firstWhere(
+        (c) => c.code.toUpperCase() == activeCode.toUpperCase(),
+        orElse: () => _companies.first,
+      );
+      _currentCompany = found;
+    } else {
+      _currentCompany = _companies.first;
+    }
+
+    // 3. Load Join Requests
+    final savedRequests = await _storage.loadJoinRequests();
+    if (savedRequests != null) {
+      _joinRequests = savedRequests;
+    }
+
+    // 4. Load Auth / Session
+    final session = await _storage.loadSession();
+    _isAuthenticated = session['isAuthenticated'] as bool? ?? false;
+    _currentUserRole = session['role'] as UserRole? ?? UserRole.admin;
+    _customUserAvatar = session['customAvatar'] as String?;
+    final savedEmpId = session['employeeId'] as String?;
+
+    // 5. Load Company Data
+    await _loadCompanyData(_currentCompany.code, savedEmpId: savedEmpId);
+
+    _isStorageLoaded = true;
+    notifyListeners();
+  }
+
+  Future<void> _loadCompanyData(String companyCode, {String? savedEmpId}) async {
+    final savedTasks = await _storage.loadTasks(companyCode);
+    final savedSops = await _storage.loadSops(companyCode);
+    final savedEmployees = await _storage.loadEmployees(companyCode);
+    final savedChannels = await _storage.loadChannels(companyCode);
+    final savedMessages = await _storage.loadMessages(companyCode);
+    final savedNotifs = await _storage.loadNotifications(companyCode);
+
+    if (savedTasks != null) {
+      _tasks = savedTasks;
+    } else if (companyCode != 'CILALU-88') {
+      _tasks = [];
+    }
+
+    if (savedSops != null) {
+      _sops = savedSops;
+    } else if (companyCode != 'CILALU-88') {
+      _sops = [];
+    }
+
+    if (savedEmployees != null) {
+      _employees = savedEmployees;
+    } else if (companyCode != 'CILALU-88') {
+      _employees = [];
+    }
+
+    if (savedChannels != null) {
+      _channels = savedChannels;
+    }
+
+    if (savedMessages != null) {
+      _messages = savedMessages;
+    }
+
+    if (savedNotifs != null) {
+      _notifications = savedNotifs;
+    } else if (companyCode != 'CILALU-88') {
+      _notifications = [];
+    }
+
+    if (savedEmpId != null && _employees.isNotEmpty) {
+      _currentEmployee = _employees.firstWhere(
+        (e) => e.id == savedEmpId,
+        orElse: () => _employees.first,
+      );
+    }
+  }
+
+  void _persistSession() {
+    _storage.saveSession(
+      isAuthenticated: _isAuthenticated,
+      role: _currentUserRole,
+      employeeId: _currentEmployee?.id,
+      customAvatar: _customUserAvatar,
+    );
+  }
+
+  void _persistCompanies() {
+    _storage.saveCompanies(_companies);
+    _storage.saveCurrentCompanyCode(_currentCompany.code);
+    // Cloud sync
+    _firestore.saveCompany(_currentCompany);
+  }
+
+  void _persistTasks() {
+    _storage.saveTasks(_currentCompany.code, _tasks);
+    // Cloud sync
+    _firestore.saveTasks(_currentCompany.code, _tasks);
+  }
+
+  void _persistSops() {
+    _storage.saveSops(_currentCompany.code, _sops);
+    // Cloud sync
+    _firestore.saveSops(_currentCompany.code, _sops);
+  }
+
+  void _persistEmployees() {
+    _storage.saveEmployees(_currentCompany.code, _employees);
+    // Cloud sync
+    _firestore.saveEmployees(_currentCompany.code, _employees);
+  }
+
+  void _persistChat() {
+    _storage.saveChannels(_currentCompany.code, _channels);
+    _storage.saveMessages(_currentCompany.code, _messages);
+    // Cloud sync
+    _firestore.saveChannels(_currentCompany.code, _channels);
+    _firestore.saveMessages(_currentCompany.code, _messages);
+  }
+
+  void _persistJoinRequests() {
+    _storage.saveJoinRequests(_joinRequests);
+    // Cloud sync
+    _firestore.saveJoinRequests(_currentCompany.code, _joinRequests);
+  }
+
+  void _persistNotifications() {
+    _storage.saveNotifications(_currentCompany.code, _notifications);
+    // Cloud sync
+    _firestore.saveNotifications(_currentCompany.code, _notifications);
+  }
+
+  void _persistAllCompanyData() {
+    _persistCompanies();
+    _persistTasks();
+    _persistSops();
+    _persistEmployees();
+    _persistChat();
+    _persistJoinRequests();
+    _persistNotifications();
+    _persistSession();
   }
 
   List<Task> _tasks = List.from(kInitialTasks);
@@ -165,6 +334,7 @@ class AppStateController extends ChangeNotifier {
 
   void updateUserAvatar(String newAvatar) {
     _customUserAvatar = newAvatar;
+    _persistSession();
     notifyListeners();
   }
 
@@ -187,6 +357,8 @@ class AppStateController extends ChangeNotifier {
 
   void switchCompany(Company comp) {
     _currentCompany = comp;
+    _storage.saveCurrentCompanyCode(_currentCompany.code);
+    _loadCompanyData(_currentCompany.code);
     notifyListeners();
   }
 
@@ -319,6 +491,7 @@ class AppStateController extends ChangeNotifier {
       showBanner: true,
     );
 
+    _persistAllCompanyData();
     notifyListeners();
   }
 
@@ -373,6 +546,8 @@ class AppStateController extends ChangeNotifier {
       showBanner: true,
     );
 
+    _persistJoinRequests();
+    _persistNotifications();
     notifyListeners();
     return req;
   }
@@ -398,6 +573,8 @@ class AppStateController extends ChangeNotifier {
         role: req.role,
         hasTeamBadge: true,
         teamCount: 1,
+        email: req.userEmail,
+        password: req.userPassword,
       );
 
       _employees = [..._employees, newEmp];
@@ -414,8 +591,12 @@ class AppStateController extends ChangeNotifier {
         ),
         showBanner: true,
       );
+
+      _persistEmployees();
     }
 
+    _persistJoinRequests();
+    _persistNotifications();
     notifyListeners();
   }
 
@@ -426,6 +607,7 @@ class AppStateController extends ChangeNotifier {
       }
       return r;
     }).toList();
+    _persistJoinRequests();
     notifyListeners();
   }
 
@@ -436,6 +618,10 @@ class AppStateController extends ChangeNotifier {
     _activities = [];
     _notifications = [];
     _employees = [];
+    _persistTasks();
+    _persistSops();
+    _persistEmployees();
+    _persistNotifications();
     notifyListeners();
   }
 
@@ -446,6 +632,10 @@ class AppStateController extends ChangeNotifier {
     _activities = List.from(kInitialActivities);
     _notifications = List.from(kNotificationsData);
     _employees = List.from(kEmployees);
+    _persistTasks();
+    _persistSops();
+    _persistEmployees();
+    _persistNotifications();
     notifyListeners();
   }
 
@@ -460,6 +650,7 @@ class AppStateController extends ChangeNotifier {
       unreadCount: 0,
     );
     _channels = [..._channels, newCh];
+    _persistChat();
     notifyListeners();
   }
 
@@ -472,6 +663,8 @@ class AppStateController extends ChangeNotifier {
     _currentEmployee = null;
     _isAuthenticated = true;
     _currentTabIndex = 0;
+    _persistSession();
+    _persistCompanies();
     notifyListeners();
   }
 
@@ -483,11 +676,14 @@ class AppStateController extends ChangeNotifier {
     _currentEmployee = employee;
     _isAuthenticated = true;
     _currentTabIndex = 0;
+    _persistSession();
+    _persistCompanies();
     notifyListeners();
   }
 
   void logout() {
     _isAuthenticated = false;
+    _persistSession();
     notifyListeners();
   }
 
@@ -531,6 +727,8 @@ class AppStateController extends ChangeNotifier {
       ),
       showBanner: true,
     );
+
+    _persistTasks();
   }
 
   void saveProgress(String taskId, List<Subtask> updatedSubtasks, int progressPercent) {
@@ -575,6 +773,8 @@ class AppStateController extends ChangeNotifier {
       ),
       showBanner: true,
     );
+
+    _persistTasks();
   }
 
   void approveTask(String taskId) {
@@ -619,6 +819,8 @@ class AppStateController extends ChangeNotifier {
       ),
       showBanner: true,
     );
+
+    _persistTasks();
   }
 
   // SOP Methods
@@ -652,6 +854,8 @@ class AppStateController extends ChangeNotifier {
       ),
       showBanner: true,
     );
+
+    _persistSops();
   }
 
   void confirmReadSop(String sopId) {
@@ -681,6 +885,7 @@ class AppStateController extends ChangeNotifier {
     );
     _activities = [newActivity, ..._activities];
 
+    _persistSops();
     notifyListeners();
   }
 
@@ -692,6 +897,7 @@ class AppStateController extends ChangeNotifier {
       return s;
     }).toList();
 
+    _persistSops();
     notifyListeners();
   }
 
@@ -728,6 +934,7 @@ class AppStateController extends ChangeNotifier {
 
   void markAllNotificationsAsRead() {
     _notifications = _notifications.map((n) => n.copyWith(unread: false)).toList();
+    _persistNotifications();
     notifyListeners();
   }
 
@@ -738,11 +945,13 @@ class AppStateController extends ChangeNotifier {
       }
       return n;
     }).toList();
+    _persistNotifications();
     notifyListeners();
   }
 
   void clearAllNotifications() {
     _notifications = [];
+    _persistNotifications();
     notifyListeners();
   }
 
@@ -850,6 +1059,8 @@ class AppStateController extends ChangeNotifier {
         return ch;
       }).toList();
     }
+
+    _persistChat();
 
     final channelName = channelId != null
         ? (_channels.firstWhere((c) => c.id == channelId, orElse: () => _channels.first).name)

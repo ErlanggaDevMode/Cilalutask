@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cilalutask_mobile/main.dart';
 import 'package:cilalutask_mobile/state/app_state_controller.dart';
 import 'package:cilalutask_mobile/models/user_role.dart';
@@ -7,6 +8,9 @@ import 'package:cilalutask_mobile/models/notification_item.dart';
 import 'package:cilalutask_mobile/models/company.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
   testWidgets('Cilalutask initial launch shows LoginScreen with 3 tabs', (WidgetTester tester) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
@@ -39,12 +43,12 @@ void main() {
     await tester.pumpWidget(CilalutaskApp(controller: controller));
     await tester.pumpAndSettle();
 
-    // Click quick demo login as Admin
-    final demoAdminFinder = find.text('Demo Admin');
-    expect(demoAdminFinder, findsOneWidget);
-    await tester.ensureVisible(demoAdminFinder);
+    // Click login as Admin
+    final loginAdminFinder = find.text('Masuk sebagai Admin');
+    expect(loginAdminFinder, findsOneWidget);
+    await tester.ensureVisible(loginAdminFinder);
     await tester.pumpAndSettle();
-    await tester.tap(demoAdminFinder);
+    await tester.tap(loginAdminFinder);
     await tester.pumpAndSettle();
 
     // Verify authenticated state
@@ -73,12 +77,19 @@ void main() {
     await tester.pumpWidget(CilalutaskApp(controller: controller));
     await tester.pumpAndSettle();
 
-    // Click quick demo login as Karyawan
-    final demoUserFinder = find.text('Demo Karyawan');
-    expect(demoUserFinder, findsOneWidget);
-    await tester.ensureVisible(demoUserFinder);
+    // Switch to Karyawan role and login
+    final userRoleFinder = find.text('User (Karyawan)');
+    expect(userRoleFinder, findsOneWidget);
+    await tester.ensureVisible(userRoleFinder);
     await tester.pumpAndSettle();
-    await tester.tap(demoUserFinder);
+    await tester.tap(userRoleFinder);
+    await tester.pumpAndSettle();
+
+    final loginUserFinder = find.text('Masuk sebagai Karyawan');
+    expect(loginUserFinder, findsOneWidget);
+    await tester.ensureVisible(loginUserFinder);
+    await tester.pumpAndSettle();
+    await tester.tap(loginUserFinder);
     await tester.pumpAndSettle();
 
     // Verify user role
@@ -171,9 +182,9 @@ void main() {
     await tester.pumpAndSettle();
 
     // Login as Admin
-    final demoAdminFinder = find.text('Demo Admin');
-    await tester.ensureVisible(demoAdminFinder);
-    await tester.tap(demoAdminFinder);
+    final loginAdminFinder = find.text('Masuk sebagai Admin');
+    await tester.ensureVisible(loginAdminFinder);
+    await tester.tap(loginAdminFinder);
     await tester.pumpAndSettle();
 
     // Dispatch a real-time notification
@@ -201,5 +212,44 @@ void main() {
     controller.dismissActiveNotification();
     await tester.pump(const Duration(seconds: 5));
     await tester.pumpAndSettle();
+  });
+
+  test('Local Persistence restores registered company, chat messages, and tasks across restarts', () async {
+    // 1. First app launch: register new company and send a chat message
+    final controller1 = AppStateController();
+    await controller1.initStorage();
+
+    controller1.registerCompany(
+      name: 'PT Maju Bersama',
+      code: 'MAJU-77',
+      adminName: 'Budi Santoso',
+      adminEmail: 'budi@maju.com',
+      adminPassword: 'Password123!',
+      industry: 'Teknologi',
+    );
+
+    // Send a message in default channel
+    controller1.sendChatMessage(
+      content: 'Selamat datang di server internal!',
+      channelId: 'dev-team',
+    );
+
+    // Verify in controller 1
+    expect(controller1.currentCompany.code, 'MAJU-77');
+    expect(controller1.currentCompany.name, 'PT Maju Bersama');
+    expect(controller1.messages.any((m) => m.content.contains('internal')), isTrue);
+
+    // 2. Simulate app kill & fresh restart with Controller 2
+    final controller2 = AppStateController();
+    await controller2.initStorage();
+
+    // Verify data restored from storage
+    expect(controller2.currentCompany.code, 'MAJU-77');
+    expect(controller2.currentCompany.name, 'PT Maju Bersama');
+    expect(controller2.currentCompany.adminName, 'Budi Santoso');
+    expect(controller2.messages.any((m) => m.content == 'Selamat datang di server internal!'), isTrue);
+
+    controller1.dispose();
+    controller2.dispose();
   });
 }

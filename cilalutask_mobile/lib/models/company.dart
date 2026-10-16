@@ -46,6 +46,34 @@ class Company {
       industry: industry ?? this.industry,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'adminName': adminName,
+      'adminEmail': adminEmail,
+      'adminPassword': adminPassword,
+      'createdAt': createdAt.toIso8601String(),
+      'industry': industry,
+    };
+  }
+
+  factory Company.fromMap(Map<String, dynamic> map) {
+    return Company(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      code: map['code'] as String? ?? '',
+      adminName: map['adminName'] as String? ?? '',
+      adminEmail: map['adminEmail'] as String? ?? '',
+      adminPassword: map['adminPassword'] as String? ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
+      industry: map['industry'] as String? ?? 'Teknologi & Operasional',
+    );
+  }
 }
 
 class JoinRequest {
@@ -100,6 +128,52 @@ class JoinRequest {
       avatar: avatar ?? this.avatar,
       status: status ?? this.status,
       requestedAt: requestedAt ?? this.requestedAt,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'companyCode': companyCode,
+      'companyName': companyName,
+      'userName': userName,
+      'userEmail': userEmail,
+      'userPassword': userPassword,
+      'division': division,
+      'role': role,
+      'avatar': avatar,
+      'status': status.name,
+      'requestedAt': requestedAt.toIso8601String(),
+    };
+  }
+
+  factory JoinRequest.fromMap(Map<String, dynamic> map) {
+    JoinRequestStatus parseStatus(String? val) {
+      switch (val) {
+        case 'approved':
+          return JoinRequestStatus.approved;
+        case 'rejected':
+          return JoinRequestStatus.rejected;
+        case 'pending':
+        default:
+          return JoinRequestStatus.pending;
+      }
+    }
+
+    return JoinRequest(
+      id: map['id'] as String? ?? '',
+      companyCode: map['companyCode'] as String? ?? '',
+      companyName: map['companyName'] as String? ?? '',
+      userName: map['userName'] as String? ?? '',
+      userEmail: map['userEmail'] as String? ?? '',
+      userPassword: map['userPassword'] as String? ?? '',
+      division: map['division'] as String? ?? '',
+      role: map['role'] as String? ?? '',
+      avatar: map['avatar'] as String? ?? '',
+      status: parseStatus(map['status'] as String?),
+      requestedAt: map['requestedAt'] != null
+          ? DateTime.tryParse(map['requestedAt'] as String) ?? DateTime.now()
+          : DateTime.now(),
     );
   }
 }

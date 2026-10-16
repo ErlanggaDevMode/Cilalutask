@@ -1,6 +1,6 @@
 # CILALUTASK Mobile (Dart & Flutter)
 
-Aplikasi mobile korporat **CILALUTASK** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, komunikasi chat multi-saluran, serta **arsitektur Multi-Perusahaan dengan Mode Data Bersih (Blank Slate) & Alur Persetujuan Karyawan (Admin Approval Workflow)**.
+Aplikasi mobile korporat **CILALUTASK** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, komunikasi chat multi-saluran, serta **arsitektur Multi-Perusahaan dengan Mode Data Bersih (Blank Slate) & Alur Persetu.  juan Karyawan (Admin Approval Workflow)**.
 
 Dibangun dengan arsitektur **Feature-First / Clean Architecture**, Flutter 3.x, dan Dart 3.x modern.
 
@@ -146,6 +146,8 @@ cilalutask_mobile/
 │   │   └── user_role.dart                 # Enum UserRole (Admin / User)
 │   ├── data/
 │   │   └── mock_data.dart                 # Data demo awal
+│   ├── services/
+│   │   └── local_storage_service.dart     # Engine penyimpanan lokal permanen (SharedPreferences)
 │   ├── state/
 │   │   ├── app_state_controller.dart      # Reactive business logic & multi-tenant state
 │   │   └── app_state_scope.dart           # InheritedNotifier provider
@@ -171,7 +173,45 @@ cilalutask_mobile/
 │       ├── export_report_bottom_sheet.dart# Ekspor PDF/Excel
 │       ├── broadcast_bottom_sheet.dart    # Broadcast pengumuman
 │       ├── notification_center_bottom_sheet.dart # Pusat notifikasi
-│       └── profile_bottom_sheet.dart      # Info perusahaan & pengalih Blank/Demo
+│       └── profile_bottom_sheet.dart      # Info perusahaan, inisial avatar & pengalih Blank/Demo
 └── test/
-    └── widget_test.dart                   # Automated tests: Auth, Multi-Company, Join Flow, Realtime
+    └── widget_test.dart                   # Automated tests: Auth, Multi-Company, Join Flow, Realtime, Persistence
 ```
+## Untuk Test Dan Juga Verify (Just Kiding)
+## 💾 Arsitektur Penyimpanan & Backend (100% Free & Tahan Lama)
+
+### 1. Lapisan Penyimpanan Lokal (Aktif Saat Ini - Zero Setup, Zero Cost)
+- **Engine**: Menggunakan `LocalStorageService` berbasis `shared_preferences`.
+- **Fitur Tersimpan Otomatis**:
+  - Semua Perusahaan yang terdaftar (`Company`)
+  - Sesi login akun aktif & kode perusahaan aktif
+  - Riwayat obrolan lengkap (`ChatMessage`) per saluran dan direct message
+  - Tugas operasional (`Task`) dan subtask checklist
+  - Standar Operasional Prosedur (`SOPDocument`) & status pembaca
+  - Permohonan bergabung karyawan (`JoinRequest`) & status persetujuan
+  - Anggota tim (`Assignee`) & performa divisi
+  - Riwayat notifikasi
+- **Kelebihan**:
+  - Berfungsi langsung 100% offline di Android, iOS, Web, dan Desktop.
+  - Data **tidak akan hilang** meskipun aplikasi ditutup, di-restart, atau browser di-refresh.
+  - Bebas biaya selamanya ($0), tanpa batas kuota server.
+
+### 2. Panduan Integrasi Google Firebase (Cloud Sync Antar-Perangkat - 100% Free Spark Plan)
+Untuk menghubungkan data secara online lintas HP karyawan dan Admin secara realtime tanpa biaya:
+1. **Pilih Google Firebase (Spark Plan - Gratis Selamanya)**:
+   - Tidak pernah *auto-pause* atau *sleep* (berbeda dengan Supabase free-tier yang tidur jika 7 hari tanpa akses).
+   - Kuota gratis: 50.000 baca/hari, 20.000 tulis/hari, 1 GB penyimpanan database Cloud Firestore.
+2. **Langkah Instalasi FlutterFire**:
+   ```bash
+   dart pub global activate flutterfire_cli
+   flutterfire configure
+   ```
+3. **Struktur Koleksi Firestore (Multi-Tenant by Company Code)**:
+   - `companies/{companyCode}`
+   - `companies/{companyCode}/tasks/{taskId}`
+   - `companies/{companyCode}/sops/{sopId}`
+   - `companies/{companyCode}/channels/{channelId}/messages/{messageId}`
+   - `companies/{companyCode}/join_requests/{requestId}`
+   - `companies/{companyCode}/members/{memberId}`
+4. Model serialization di aplikasi sudah 100% siap (`toMap()` dan `fromMap()`) sehingga dapat langsung dipetakan ke dokumen Firestore.
+

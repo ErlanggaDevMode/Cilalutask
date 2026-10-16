@@ -52,4 +52,38 @@ class NotificationItem {
       timestamp: timestamp ?? this.timestamp,
     );
   }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'time': time,
+      'unread': unread,
+      'type': type,
+      'senderName': senderName,
+      'senderAvatar': senderAvatar,
+      'targetTab': targetTab,
+      'targetId': targetId,
+      'timestamp': timestamp?.toIso8601String(),
+    };
+  }
+
+  factory NotificationItem.fromMap(Map<String, dynamic> map) {
+    return NotificationItem(
+      id: map['id'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      description: map['description'] as String? ?? '',
+      time: map['time'] as String? ?? '',
+      unread: map['unread'] as bool? ?? true,
+      type: map['type'] as String? ?? 'system',
+      senderName: map['senderName'] as String?,
+      senderAvatar: map['senderAvatar'] as String?,
+      targetTab: map['targetTab'] as int?,
+      targetId: map['targetId'] as String?,
+      timestamp: map['timestamp'] != null
+          ? DateTime.tryParse(map['timestamp'] as String)
+          : null,
+    );
+  }
 }

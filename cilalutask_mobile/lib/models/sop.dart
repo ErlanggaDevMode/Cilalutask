@@ -6,6 +6,30 @@ class ContentSection {
     required this.heading,
     required this.items,
   });
+
+  ContentSection copyWith({
+    String? heading,
+    List<String>? items,
+  }) {
+    return ContentSection(
+      heading: heading ?? this.heading,
+      items: items ?? this.items,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'heading': heading,
+      'items': items,
+    };
+  }
+
+  factory ContentSection.fromMap(Map<String, dynamic> map) {
+    return ContentSection(
+      heading: map['heading'] as String? ?? '',
+      items: (map['items'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
 }
 
 class SOPDocument {
@@ -96,6 +120,59 @@ class SOPDocument {
       description: description ?? this.description,
       contentSections: contentSections ?? this.contentSections,
       isReadByMe: isReadByMe ?? this.isReadByMe,
+    );
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'code': code,
+      'title': title,
+      'category': category,
+      'version': version,
+      'isUrgentMandatory': isUrgentMandatory,
+      'isNewUpdate': isNewUpdate,
+      'isBookmarked': isBookmarked,
+      'deadlineWarning': deadlineWarning,
+      'complianceTag': complianceTag,
+      'complianceRatioText': complianceRatioText,
+      'readProgressPercent': readProgressPercent,
+      'readTeamCount': readTeamCount,
+      'lastUpdatedText': lastUpdatedText,
+      'fileInfo': fileInfo,
+      'checkPoints': checkPoints,
+      'duration': duration,
+      'description': description,
+      'contentSections': contentSections.map((s) => s.toMap()).toList(),
+      'isReadByMe': isReadByMe,
+    };
+  }
+
+  factory SOPDocument.fromMap(Map<String, dynamic> map) {
+    return SOPDocument(
+      id: map['id'] as String? ?? '',
+      code: map['code'] as String? ?? '',
+      title: map['title'] as String? ?? '',
+      category: map['category'] as String? ?? '',
+      version: map['version'] as String? ?? '',
+      isUrgentMandatory: map['isUrgentMandatory'] as bool? ?? false,
+      isNewUpdate: map['isNewUpdate'] as bool? ?? false,
+      isBookmarked: map['isBookmarked'] as bool? ?? false,
+      deadlineWarning: map['deadlineWarning'] as String?,
+      complianceTag: map['complianceTag'] as String?,
+      complianceRatioText: map['complianceRatioText'] as String?,
+      readProgressPercent: map['readProgressPercent'] as int?,
+      readTeamCount: map['readTeamCount'] as String?,
+      lastUpdatedText: map['lastUpdatedText'] as String? ?? 'Baru saja',
+      fileInfo: map['fileInfo'] as String?,
+      checkPoints: map['checkPoints'] as String?,
+      duration: map['duration'] as String?,
+      description: map['description'] as String?,
+      contentSections: (map['contentSections'] as List<dynamic>?)
+              ?.map((s) => ContentSection.fromMap(s as Map<String, dynamic>))
+              .toList() ??
+          [],
+      isReadByMe: map['isReadByMe'] as bool? ?? false,
     );
   }
 }
