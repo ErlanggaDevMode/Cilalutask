@@ -1,4 +1,5 @@
 import 'employee.dart';
+import '../core/utils/data_parser.dart';
 
 enum PriorityType {
   high('Prioritas Tinggi'),
@@ -179,12 +180,12 @@ class Task {
       deadlineLabel: map['deadlineLabel'] as String? ?? '',
       isUrgentDeadline: map['isUrgentDeadline'] as bool? ?? false,
       isToday: map['isToday'] as bool? ?? false,
-      subtasks: (map['subtasks'] as List<dynamic>?)
-              ?.map((s) => Subtask.fromMap(s as Map<String, dynamic>))
-              .toList() ??
-          [],
+      subtasks: DataParser.parseList<Subtask>(
+        map['subtasks'],
+        (s) => Subtask.fromMap(s),
+      ),
       assignee: map['assignee'] != null
-          ? Assignee.fromMap(map['assignee'] as Map<String, dynamic>)
+          ? Assignee.fromMap(DataParser.parseMap(map['assignee']))
           : const Assignee(
               id: 'emp-unknown',
               name: 'Staff',
@@ -193,7 +194,7 @@ class Task {
               division: 'Umum',
               role: 'Karyawan',
             ),
-      progressPercent: map['progressPercent'] as int? ?? 0,
+      progressPercent: (map['progressPercent'] as num?)?.toInt() ?? 0,
       updatedAt: map['updatedAt'] as String?,
       needsReview: map['needsReview'] as bool? ?? false,
     );

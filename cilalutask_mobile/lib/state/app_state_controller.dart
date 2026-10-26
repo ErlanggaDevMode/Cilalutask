@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../models/task.dart';
 import '../models/sop.dart';
 import '../models/activity.dart';
@@ -10,21 +11,28 @@ import '../models/user_role.dart';
 import '../models/chat_model.dart';
 import '../models/company.dart';
 import '../data/mock_data.dart';
-import '../services/local_storage_service.dart';
-import '../services/firestore_service.dart';
 import '../services/auth_service.dart';
+import '../repositories/cilalu_repository.dart';
+import '../repositories/data_exception.dart';
 
 class AppStateController extends ChangeNotifier {
-  final LocalStorageService _storage = LocalStorageService();
-  final FirestoreService _firestore = FirestoreService();
-  final AuthService _authService = AuthService();
+  final CilaluRepository _repository;
+  final AuthService _authService;
+
   bool _isStorageLoaded = false;
   bool get isStorageLoaded => _isStorageLoaded;
-  bool get isCloudConnected => _firestore.isAvailable;
+  bool get isCloudConnected => _repository.isCloudAvailable;
+  SyncStatus get syncStatus => _repository.syncStatus;
+  String? get lastSyncError => _repository.lastError;
+
+  bool _isLoadingCompanyData = false;
+  bool get isLoadingCompanyData => _isLoadingCompanyData;
+
   AuthService get authService => _authService;
+  CilaluRepository get repository => _repository;
 
   // Authentication & Role
-  bool _isAuthenticated = false; // Starts at Login screen; allows instant demo login as Admin or Karyawan
+  bool _isAuthenticated = false;
   UserRole _currentUserRole = UserRole.admin;
   Assignee? _currentEmployee; // null if Admin
 
@@ -51,28 +59,34 @@ class AppStateController extends ChangeNotifier {
   NotificationItem? _activeInAppNotification;
   Timer? _inAppBannerTimer;
 
-  AppStateController() {
+  // Real-time stream subscriptions
+  StreamSubscription<List<ChatMessage>>? _chatSubscription;
+  StreamSubscription<List<NotificationItem>>? _notifsSubscription;
+  StreamSubscription<List<JoinRequest>>? _joinRequestsSubscription;
+
+  AppStateController({
+    CilaluRepository? repository,
+    AuthService? authService,
+  })  : _repository = repository ?? CilaluRepository(),
+        _authService = authService ?? AuthService() {
     _currentCompany = _companies.first;
   }
 
-  Future<void> initStorage() async {
-    await _storage.init();
+  // ─────────────────────────────────────────────────────────────
+  //  LIFECYCLE & INITIALIZATION
+  // ─────────────────────────────────────────────────────────────
 
-    // Initialize Firestore (non-blocking — falls back gracefully if offline)
-    try {
-      await _firestore.init();
-    } catch (_) {
-      debugPrint('☁️ Firestore unavailable, using local storage only');
-    }
+  Future<void> initStorage() async {
+    await _repository.init();
 
     // 1. Load companies
-    final savedCompanies = await _storage.loadCompanies();
-    if (savedCompanies != null && savedCompanies.isNotEmpty) {
+    final savedCompanies = await _repository.getCompanies();
+    if (savedCompanies.isNotEmpty) {
       _companies = savedCompanies;
     }
 
     // 2. Load active company code
-    final activeCode = await _storage.loadCurrentCompanyCode();
+    final activeCode = await _repository.loadCurrentCompanyCode();
     if (activeCode != null) {
       final found = _companies.firstWhere(
         (c) => c.code.toUpperCase() == activeCode.toUpperCase(),
@@ -84,19 +98,19 @@ class AppStateController extends ChangeNotifier {
     }
 
     // 3. Load Join Requests
-    final savedRequests = await _storage.loadJoinRequests();
-    if (savedRequests != null) {
+    final savedRequests = await _repository.getJoinRequests(_currentCompany.code);
+    if (savedRequests.isNotEmpty) {
       _joinRequests = savedRequests;
     }
 
     // 4. Load Auth / Session
-    final session = await _storage.loadSession();
+    final session = await _repository.loadSession();
     _isAuthenticated = session['isAuthenticated'] as bool? ?? false;
     _currentUserRole = session['role'] as UserRole? ?? UserRole.admin;
     _customUserAvatar = session['customAvatar'] as String?;
     final savedEmpId = session['employeeId'] as String?;
 
-    // 5. Load Company Data
+    // 5. Load Company Data sequentially
     await _loadCompanyData(_currentCompany.code, savedEmpId: savedEmpId);
 
     _isStorageLoaded = true;
@@ -104,83 +118,112 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> _loadCompanyData(String companyCode, {String? savedEmpId}) async {
-    // 1. If connected to cloud Firestore, sync cloud data
-    if (_firestore.isAvailable) {
-      try {
-        final cloudTasks = await _firestore.loadTasks(companyCode);
-        if (cloudTasks.isNotEmpty) _tasks = cloudTasks;
+    _isLoadingCompanyData = true;
+    _cancelSubscriptions();
 
-        final cloudSops = await _firestore.loadSops(companyCode);
-        if (cloudSops.isNotEmpty) _sops = cloudSops;
-
-        final cloudEmployees = await _firestore.loadEmployees(companyCode);
-        if (cloudEmployees.isNotEmpty) _employees = cloudEmployees;
-
-        final cloudChannels = await _firestore.loadChannels(companyCode);
-        if (cloudChannels.isNotEmpty) _channels = cloudChannels;
-
-        final cloudMessages = await _firestore.loadMessages(companyCode);
-        if (cloudMessages.isNotEmpty) _messages = cloudMessages;
-
-        final cloudNotifs = await _firestore.loadNotifications(companyCode);
-        if (cloudNotifs.isNotEmpty) _notifications = cloudNotifs;
-
-        final cloudRequests = await _firestore.loadJoinRequests(companyCode);
-        if (cloudRequests.isNotEmpty) _joinRequests = cloudRequests;
-      } catch (e) {
-        debugPrint('Firestore load fallback to local storage');
+    try {
+      // 1. Fetch domain data sequentially via repository (remote SoT with local cache fallback)
+      final loadedTasks = await _repository.getTasks(companyCode);
+      if (loadedTasks.isNotEmpty || companyCode != 'CILALU-88') {
+        _tasks = loadedTasks;
       }
-    }
 
-    // 2. Fallback to local storage
-    final savedTasks = await _storage.loadTasks(companyCode);
-    if (savedTasks != null) {
-      _tasks = savedTasks;
-    } else if (companyCode != 'CILALU-88') {
-      _tasks = [];
-    }
+      final loadedSops = await _repository.getSops(companyCode);
+      if (loadedSops.isNotEmpty || companyCode != 'CILALU-88') {
+        _sops = loadedSops;
+      }
 
-    final savedSops = await _storage.loadSops(companyCode);
-    if (savedSops != null) {
-      _sops = savedSops;
-    } else if (companyCode != 'CILALU-88') {
-      _sops = [];
-    }
+      final loadedMembers = await _repository.getMembers(companyCode);
+      if (loadedMembers.isNotEmpty || companyCode != 'CILALU-88') {
+        _employees = loadedMembers;
+      }
 
-    final savedEmployees = await _storage.loadEmployees(companyCode);
-    if (savedEmployees != null) {
-      _employees = savedEmployees;
-    } else if (companyCode != 'CILALU-88') {
-      _employees = [];
-    }
+      final loadedChannels = await _repository.getChannels(companyCode);
+      if (loadedChannels.isNotEmpty) {
+        _channels = loadedChannels;
+      }
 
-    final savedChannels = await _storage.loadChannels(companyCode);
-    if (savedChannels != null) {
-      _channels = savedChannels;
-    }
+      final loadedMessages = await _repository.getMessages(companyCode);
+      if (loadedMessages.isNotEmpty || companyCode != 'CILALU-88') {
+        _messages = loadedMessages;
+      }
 
-    final savedMessages = await _storage.loadMessages(companyCode);
-    if (savedMessages != null) {
-      _messages = savedMessages;
-    }
+      final loadedNotifs = await _repository.getNotifications(companyCode);
+      if (loadedNotifs.isNotEmpty || companyCode != 'CILALU-88') {
+        _notifications = loadedNotifs;
+      }
 
-    final savedNotifs = await _storage.loadNotifications(companyCode);
-    if (savedNotifs != null) {
-      _notifications = savedNotifs;
-    } else if (companyCode != 'CILALU-88') {
-      _notifications = [];
-    }
+      final loadedRequests = await _repository.getJoinRequests(companyCode);
+      if (loadedRequests.isNotEmpty || companyCode != 'CILALU-88') {
+        _joinRequests = loadedRequests;
+      }
 
-    if (savedEmpId != null && _employees.isNotEmpty) {
-      _currentEmployee = _employees.firstWhere(
-        (e) => e.id == savedEmpId,
-        orElse: () => _employees.first,
+      if (savedEmpId != null && _employees.isNotEmpty) {
+        _currentEmployee = _employees.firstWhere(
+          (e) => e.id == savedEmpId,
+          orElse: () => _employees.first,
+        );
+      }
+
+      // 2. Start real-time subscriptions for the active company
+      _startSubscriptions(companyCode);
+    } catch (e) {
+      debugPrint('Error loading company data: $e');
+    } finally {
+      _isLoadingCompanyData = false;
+      notifyListeners();
+    }
+  }
+
+  void _cancelSubscriptions() {
+    _chatSubscription?.cancel();
+    _chatSubscription = null;
+    _notifsSubscription?.cancel();
+    _notifsSubscription = null;
+    _joinRequestsSubscription?.cancel();
+    _joinRequestsSubscription = null;
+  }
+
+  void _startSubscriptions(String companyCode) {
+    _cancelSubscriptions();
+    if (!_repository.isCloudAvailable) return;
+
+    // Chat stream
+    _chatSubscription = _repository.streamMessages(companyCode).listen(
+      (messages) {
+        if (messages.isNotEmpty) {
+          _messages = messages;
+          notifyListeners();
+        }
+      },
+      onError: (e) => debugPrint('Chat subscription error: $e'),
+    );
+
+    // Notifications stream
+    _notifsSubscription = _repository.streamNotifications(companyCode).listen(
+      (notifs) {
+        if (notifs.isNotEmpty) {
+          _notifications = notifs;
+          notifyListeners();
+        }
+      },
+      onError: (e) => debugPrint('Notification subscription error: $e'),
+    );
+
+    // Join requests stream for admin
+    if (isAdmin) {
+      _joinRequestsSubscription = _repository.streamJoinRequests(companyCode).listen(
+        (requests) {
+          _joinRequests = requests;
+          notifyListeners();
+        },
+        onError: (e) => debugPrint('Join requests subscription error: $e'),
       );
     }
   }
 
   void _persistSession() {
-    _storage.saveSession(
+    _repository.saveSession(
       isAuthenticated: _isAuthenticated,
       role: _currentUserRole,
       employeeId: _currentEmployee?.id,
@@ -191,59 +234,17 @@ class AppStateController extends ChangeNotifier {
   }
 
   void _persistCompanies() {
-    _storage.saveCompanies(_companies);
-    _storage.saveCurrentCompanyCode(_currentCompany.code);
-    // Cloud sync
-    _firestore.saveCompany(_currentCompany);
+    _repository.saveCompany(_currentCompany);
   }
 
-  void _persistTasks() {
-    _storage.saveTasks(_currentCompany.code, _tasks);
-    // Cloud sync
-    _firestore.saveTasks(_currentCompany.code, _tasks);
-  }
+  UserRole get currentRole => _currentUserRole;
+  String get currentUserDivision =>
+      _currentUserRole == UserRole.admin ? _currentUser.division : (_currentEmployee?.division ?? 'Operasional');
 
-  void _persistSops() {
-    _storage.saveSops(_currentCompany.code, _sops);
-    // Cloud sync
-    _firestore.saveSops(_currentCompany.code, _sops);
-  }
-
-  void _persistEmployees() {
-    _storage.saveEmployees(_currentCompany.code, _employees);
-    // Cloud sync
-    _firestore.saveEmployees(_currentCompany.code, _employees);
-  }
-
-  void _persistChat() {
-    _storage.saveChannels(_currentCompany.code, _channels);
-    _storage.saveMessages(_currentCompany.code, _messages);
-    // Cloud sync
-    _firestore.saveChannels(_currentCompany.code, _channels);
-    _firestore.saveMessages(_currentCompany.code, _messages);
-  }
-
-  void _persistJoinRequests() {
-    _storage.saveJoinRequests(_joinRequests);
-    // Cloud sync
-    _firestore.saveJoinRequests(_currentCompany.code, _joinRequests);
-  }
-
-  void _persistNotifications() {
-    _storage.saveNotifications(_currentCompany.code, _notifications);
-    // Cloud sync
-    _firestore.saveNotifications(_currentCompany.code, _notifications);
-  }
-
-  void _persistAllCompanyData() {
-    _persistCompanies();
-    _persistTasks();
-    _persistSops();
-    _persistEmployees();
-    _persistChat();
-    _persistJoinRequests();
-    _persistNotifications();
+  void updateUserAvatar(String newAvatar) {
+    _customUserAvatar = newAvatar;
     _persistSession();
+    notifyListeners();
   }
 
   List<Task> _tasks = List.from(kInitialTasks);
@@ -313,86 +314,107 @@ class AppStateController extends ChangeNotifier {
       id: 'msg-2',
       channelId: 'ch-umum',
       senderId: 'emp-1',
-      senderName: 'Kevin Maulana',
-      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-      senderRole: 'Lead Cloud Engineer',
-      content: 'Pagi Bu Sarah! Migrasi database transaksi ke Aurora sedang berjalan lancar, tahap simulasi auto-failover.',
+      senderName: 'Budi Santoso',
+      senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
+      senderRole: 'Staf Operasional',
+      content: 'Siap Bu Sarah, tim gudang Cikarang sedang menyelesaikan checklist Pallet B4. Dokumen SOP sudah saya baca dan konfirmasi.',
       time: '08:45',
       timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 45)),
     ),
     ChatMessage(
       id: 'msg-3',
-      channelId: 'ch-umum',
-      senderId: 'emp-3',
+      channelId: 'ch-ops',
+      senderId: 'emp-1',
       senderName: 'Budi Santoso',
       senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
-      senderRole: 'Supervisor Gudang',
-      content: 'Pemeriksaan stok fisik Cikarang sudah 88%, berita acara akan segera kami unggah sebelum pukul 17:00.',
-      time: '09:10',
-      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 10)),
+      senderRole: 'Staf Operasional',
+      content: 'Laporan forklift: Unit 2 baterai 100%, siap untuk pemindahan material rack A12.',
+      time: '09:00',
+      timestamp: DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
     ),
     ChatMessage(
       id: 'msg-4',
-      channelId: 'ch-umum',
+      channelId: 'ch-it',
+      senderId: 'emp-3',
+      senderName: 'Kevin Maulana',
+      senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
+      senderRole: 'Tech Lead / DevOps',
+      content: 'Update migrasi AWS DMS: CDC replication aktif, lag 0 detik. Database server berjalan optimal.',
+      time: '09:30',
+      timestamp: DateTime.now().subtract(const Duration(hours: 1)),
+    ),
+    ChatMessage(
+      id: 'msg-5',
+      channelId: 'ch-marketing',
       senderId: 'emp-2',
       senderName: 'Nadia Salsabila',
       senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-      senderRole: 'Senior Content Strategist',
-      content: 'Materi kampanye Mid-Year Sale siap tayang di kanal official reels dan newsletter blast.',
-      time: '09:25',
-      timestamp: DateTime.now().subtract(const Duration(minutes: 40)),
+      senderRole: 'Desainer Grafis',
+      content: 'Master banner Mid-Year Sale sudah saya kirimkan di folder Google Drive, mohon review tim lead.',
+      time: '09:40',
+      timestamp: DateTime.now().subtract(const Duration(minutes: 50)),
+    ),
+    ChatMessage(
+      id: 'msg-6',
+      channelId: 'ch-finance',
+      senderId: 'emp-4',
+      senderName: 'Rina Kusuma',
+      senderAvatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=256',
+      senderRole: 'Finance & Tax Officer',
+      content: 'Draft SPT Masa PPh 21 sudah direkonsiliasi. Pengajuan reimbursement staf diproses siang ini.',
+      time: '09:55',
+      timestamp: DateTime.now().subtract(const Duration(minutes: 35)),
     ),
   ];
 
-  // Auth Getters
+  // Getters
   bool get isAuthenticated => _isAuthenticated;
-  UserRole get currentRole => _currentUserRole;
+  UserRole get currentUserRole => _currentUserRole;
+  Assignee? get currentEmployee => _currentEmployee;
   bool get isAdmin => _currentUserRole == UserRole.admin;
   bool get isUser => _currentUserRole == UserRole.user;
-  Assignee? get currentEmployee => _currentEmployee;
 
-  String get currentUserName =>
-      _currentUserRole == UserRole.admin
-          ? (_currentCompany.adminName.isNotEmpty ? _currentCompany.adminName : _currentUser.name)
-          : (_currentEmployee?.name ?? 'Karyawan');
+  String get currentUserName => isAdmin ? _currentCompany.adminName : (_currentEmployee?.name ?? _currentUser.name);
+  String get currentUserEmail => isAdmin ? _currentCompany.adminEmail : (_currentEmployee?.email ?? _currentUser.email);
+  String get currentUserRoleTitle => isAdmin ? 'Admin / Manager' : (_currentEmployee?.role ?? _currentUser.role);
+  String get currentUserAvatar => _customUserAvatar ?? (isAdmin
+      ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
+      : (_currentEmployee?.avatar ?? _currentUser.avatar));
 
-  String get currentUserRoleTitle =>
-      _currentUserRole == UserRole.admin ? _currentUser.role : (_currentEmployee?.role ?? 'Karyawan');
-
-  String get currentUserAvatar =>
-      _customUserAvatar ??
-      (_currentUserRole == UserRole.admin
-          ? ''
-          : (_currentEmployee?.avatar ?? ''));
-
-  void updateUserAvatar(String newAvatar) {
-    _customUserAvatar = newAvatar;
+  void updateCustomAvatar(String url) {
+    _customUserAvatar = url;
     _persistSession();
     notifyListeners();
   }
 
-  String get currentUserDivision =>
-      _currentUserRole == UserRole.admin ? _currentUser.division : (_currentEmployee?.division ?? 'Operasional');
-
-  String get currentUserEmail =>
-      _currentUserRole == UserRole.admin
-          ? (_currentCompany.adminEmail.isNotEmpty ? _currentCompany.adminEmail : _currentUser.email)
-          : '${_currentEmployee?.shortName.toLowerCase().replaceAll(' ', '').replaceAll('.', '') ?? 'user'}@${_currentCompany.code.toLowerCase()}.id';
-
-  // Company & Multi-tenant Getters
-  Company get currentCompany => _currentCompany;
   List<Company> get companies => List.unmodifiable(_companies);
+  Company get currentCompany => _currentCompany;
   List<JoinRequest> get joinRequests => List.unmodifiable(_joinRequests);
   List<JoinRequest> get pendingJoinRequests =>
       _joinRequests.where((r) => r.status == JoinRequestStatus.pending && r.companyCode.toUpperCase() == _currentCompany.code.toUpperCase()).toList();
   int get pendingJoinRequestsCount => pendingJoinRequests.length;
   bool get isBlankMode => _isBlankMode;
 
-  void switchCompany(Company comp) {
+  // ─────────────────────────────────────────────────────────────
+  //  COMPANY SWITCHING & SEQUENTIAL LOADING
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> switchCompany(Company comp) async {
     _currentCompany = comp;
-    _storage.saveCurrentCompanyCode(_currentCompany.code);
-    _loadCompanyData(_currentCompany.code);
+
+    // 1. Immediately clear in-memory lists to prevent data leaks across companies
+    _tasks = [];
+    _sops = [];
+    _employees = [];
+    _messages = [];
+    _notifications = [];
+    _activities = [];
+    _isLoadingCompanyData = true;
     notifyListeners();
+
+    // 2. Persist active code and load target company data sequentially
+    await _repository.saveCurrentCompanyCode(_currentCompany.code);
+    await _loadCompanyData(_currentCompany.code);
   }
 
   // Navigation & Data Getters
@@ -436,48 +458,29 @@ class AppStateController extends ChangeNotifier {
       });
     }
 
+    _repository.pushNotification(_currentCompany.code, item);
     notifyListeners();
   }
 
   void dismissActiveNotification() {
     _inAppBannerTimer?.cancel();
     _inAppBannerTimer = null;
-    if (_activeInAppNotification != null) {
-      _activeInAppNotification = null;
-      notifyListeners();
-    }
+    _activeInAppNotification = null;
+    notifyListeners();
   }
 
-  // Chat Getters
-  List<ChatChannel> get channels => List.unmodifiable(_channels);
-  List<ChatMessage> get messages => List.unmodifiable(_messages);
-
-  List<ChatMessage> getMessagesForChannel(String channelId) {
-    return _messages.where((m) => m.channelId == channelId).toList();
-  }
-
-  List<ChatMessage> getDirectMessagesWith(String otherUserId) {
-    final myId = _currentUserRole == UserRole.admin ? 'admin-1' : (_currentEmployee?.id ?? 'emp-1');
-    return _messages.where((m) {
-      return (m.senderId == myId && m.receiverId == otherUserId) ||
-          (m.senderId == otherUserId && m.receiverId == myId);
-    }).toList();
-  }
-
-  // Company & Multi-tenant Registration Methods
-  // Company & Multi-tenant Registration Methods
+  // Multi-Company Management
   Future<void> registerCompany({
     required String name,
     required String code,
     required String adminName,
     required String adminEmail,
     required String adminPassword,
-    String industry = 'Operasional & Bisnis',
+    String industry = 'Teknologi & Operasional',
   }) async {
     final cleanCode = code.trim().toUpperCase();
     final cleanEmail = adminEmail.trim();
 
-    // 1. Authenticate with Firebase Auth if available
     String adminUid = 'admin-${DateTime.now().millisecondsSinceEpoch}';
     if (_authService.isAvailable) {
       try {
@@ -536,20 +539,20 @@ class AppStateController extends ChangeNotifier {
     _isAuthenticated = true;
     _currentTabIndex = 0;
 
-    pushNotification(
-      NotificationItem(
-        id: 'notif-welcome-${DateTime.now().millisecondsSinceEpoch}',
-        title: '🏢 Perusahaan ${newComp.name} Berhasil Dibuat!',
-        description: 'ID Perusahaan Anda: $cleanCode. Bagikan ke karyawan agar mereka dapat bergabung.',
-        time: 'Baru saja',
-        type: 'system',
-        targetTab: 5,
-        timestamp: DateTime.now(),
-      ),
-      showBanner: true,
+    final welcomeNotif = NotificationItem(
+      id: 'notif-welcome-${DateTime.now().millisecondsSinceEpoch}',
+      title: '🏢 Perusahaan ${newComp.name} Berhasil Dibuat!',
+      description: 'ID Perusahaan Anda: $cleanCode. Bagikan ke karyawan agar mereka dapat bergabung.',
+      time: 'Baru saja',
+      type: 'system',
+      targetTab: 5,
+      timestamp: DateTime.now(),
     );
+    pushNotification(welcomeNotif, showBanner: true);
 
-    _persistAllCompanyData();
+    await _repository.saveCompany(newComp);
+    await _repository.saveChannels(newComp.code, _channels);
+    _persistSession();
     notifyListeners();
   }
 
@@ -564,7 +567,6 @@ class AppStateController extends ChangeNotifier {
     final cleanCode = companyCode.trim().toUpperCase();
     final cleanEmail = email.trim();
 
-    // Authenticate / Register user in Firebase Auth if available
     String userId = 'user-${DateTime.now().millisecondsSinceEpoch}';
     if (_authService.isAvailable) {
       try {
@@ -615,127 +617,136 @@ class AppStateController extends ChangeNotifier {
 
     _joinRequests = [req, ..._joinRequests];
 
-    pushNotification(
-      NotificationItem(
-        id: 'notif-join-${DateTime.now().millisecondsSinceEpoch}',
-        title: '👥 Permintaan Bergabung Baru!',
-        description: '${req.userName} memohon bergabung ke divisi ${req.division} ($cleanCode).',
-        time: 'Baru saja',
-        type: 'system',
-        targetTab: 5,
-        timestamp: DateTime.now(),
-      ),
-      showBanner: true,
+    final notif = NotificationItem(
+      id: 'notif-join-${DateTime.now().millisecondsSinceEpoch}',
+      title: '👥 Permintaan Bergabung Baru!',
+      description: '${req.userName} memohon bergabung ke divisi ${req.division} ($cleanCode).',
+      time: 'Baru saja',
+      type: 'system',
+      targetTab: 5,
+      timestamp: DateTime.now(),
     );
+    pushNotification(notif, showBanner: true);
 
-    _persistJoinRequests();
-    _persistNotifications();
+    await _repository.submitJoinRequest(cleanCode, req);
     notifyListeners();
     return req;
   }
 
-  void acceptJoinRequest(String requestId) {
-    JoinRequest? acceptedReq;
-    _joinRequests = _joinRequests.map((r) {
-      if (r.id == requestId) {
-        acceptedReq = r.copyWith(status: JoinRequestStatus.approved);
-        return acceptedReq!;
-      }
-      return r;
-    }).toList();
+  Future<void> acceptJoinRequest(String requestId) async {
+    final found = _joinRequests.where((r) => r.id == requestId).firstOrNull;
+    if (found == null) return;
 
-    if (acceptedReq != null) {
-      final req = acceptedReq!;
-      final newEmp = Assignee(
-        id: req.userId.isNotEmpty ? req.userId : 'emp-${DateTime.now().millisecondsSinceEpoch}',
-        name: req.userName,
-        shortName: req.userName.split(' ').first,
-        avatar: req.avatar,
-        division: req.division,
-        role: req.role,
-        hasTeamBadge: true,
-        teamCount: 1,
-        email: req.userEmail,
+    final acceptedReq = found.copyWith(status: JoinRequestStatus.approved);
+    final newEmp = Assignee(
+      id: acceptedReq.userId.isNotEmpty
+          ? acceptedReq.userId
+          : 'emp-${DateTime.now().millisecondsSinceEpoch}',
+      name: acceptedReq.userName,
+      shortName: acceptedReq.userName.split(' ').first,
+      avatar: acceptedReq.avatar,
+      division: acceptedReq.division,
+      role: acceptedReq.role,
+      hasTeamBadge: true,
+      teamCount: 1,
+      email: acceptedReq.userEmail,
+    );
+
+    final welcomeNotif = NotificationItem(
+      id: 'notif-member-${DateTime.now().millisecondsSinceEpoch}',
+      title: '🎉 Anggota Tim Baru Bergabung!',
+      description: '${newEmp.name} resmi bergabung ke divisi ${newEmp.division}.',
+      time: 'Baru saja',
+      type: 'system',
+      targetTab: 5,
+      timestamp: DateTime.now(),
+    );
+
+    _joinRequests = _joinRequests.map((r) => r.id == requestId ? acceptedReq : r).toList();
+    _employees = [..._employees, newEmp];
+    pushNotification(welcomeNotif, showBanner: true);
+
+    try {
+      await _repository.acceptJoinRequestBatch(
+        companyCode: _currentCompany.code,
+        request: acceptedReq,
+        member: newEmp,
+        welcomeNotif: welcomeNotif,
       );
-
-      _employees = [..._employees, newEmp];
-
-      pushNotification(
-        NotificationItem(
-          id: 'notif-accepted-${DateTime.now().millisecondsSinceEpoch}',
-          title: '✅ ${req.userName} Diterima Bergabung!',
-          description: 'Karyawan resmi masuk tim divisi ${req.division} (${_currentCompany.name}).',
-          time: 'Baru saja',
-          type: 'system',
-          targetTab: 5,
-          timestamp: DateTime.now(),
-        ),
-        showBanner: true,
-      );
-
-      _persistEmployees();
+    } catch (e) {
+      debugPrint('acceptJoinRequest error: $e');
     }
-
-    _persistJoinRequests();
-    _persistNotifications();
     notifyListeners();
   }
 
-  void rejectJoinRequest(String requestId) {
+  Future<void> rejectJoinRequest(String requestId) async {
     _joinRequests = _joinRequests.map((r) {
       if (r.id == requestId) {
         return r.copyWith(status: JoinRequestStatus.rejected);
       }
       return r;
     }).toList();
-    _persistJoinRequests();
+
+    await _repository.deleteJoinRequest(_currentCompany.code, requestId);
     notifyListeners();
   }
 
-  void resetToBlankState() {
-    _isBlankMode = true;
+  void resetToInitialData() {
     _tasks = [];
     _sops = [];
     _activities = [];
     _notifications = [];
     _employees = [];
-    _persistTasks();
-    _persistSops();
-    _persistEmployees();
-    _persistNotifications();
     notifyListeners();
   }
 
   void loadSampleDemoData() {
-    _isBlankMode = false;
     _tasks = List.from(kInitialTasks);
     _sops = List.from(kInitialSops);
     _activities = List.from(kInitialActivities);
     _notifications = List.from(kNotificationsData);
     _employees = List.from(kEmployees);
-    _persistTasks();
-    _persistSops();
-    _persistEmployees();
-    _persistNotifications();
     notifyListeners();
   }
 
-  void createChannel({required String name, required String description}) {
-    final cleanName = name.startsWith('#') ? name : '#$name';
+  List<ChatChannel> get channels => List.unmodifiable(_channels);
+  List<ChatMessage> get messages => List.unmodifiable(_messages);
+
+  List<ChatMessage> getMessagesForChannel(String channelId) {
+    return _messages.where((m) => m.channelId == channelId).toList();
+  }
+
+  List<ChatMessage> getDirectMessagesWith(String otherUserId) {
+    final myId = _currentUserRole == UserRole.admin ? 'admin-1' : (_currentEmployee?.id ?? 'emp-1');
+    return _messages.where((m) {
+      return (m.senderId == myId && m.receiverId == otherUserId) ||
+          (m.senderId == otherUserId && m.receiverId == myId);
+    }).toList();
+  }
+
+  List<ChatMessage> messagesForChannel(String? channelId) {
+    if (channelId == null) return _messages;
+    return _messages.where((m) => m.channelId == channelId).toList();
+  }
+
+  void addChannel(String name, String description) {
     final newCh = ChatChannel(
       id: 'ch-${DateTime.now().millisecondsSinceEpoch}',
-      name: cleanName,
+      name: name.startsWith('#') ? name : '#$name',
       description: description,
-      lastMessage: 'Saluran baru dibuat oleh $currentUserName',
+      lastMessage: 'Saluran baru dibuat.',
       lastMessageTime: 'Baru saja',
       unreadCount: 0,
     );
     _channels = [..._channels, newCh];
-    _persistChat();
+    _repository.saveChannels(_currentCompany.code, _channels);
     notifyListeners();
   }
 
-  // Auth Methods
+  // ─────────────────────────────────────────────────────────────
+  //  AUTH & SESSION CONTROLS
+  // ─────────────────────────────────────────────────────────────
+
   Future<void> loginWithCredentials({
     required String companyCode,
     required String email,
@@ -775,7 +786,6 @@ class AppStateController extends ChangeNotifier {
       if (foundCompany.code != _currentCompany.code) {
         _currentCompany = foundCompany;
       }
-      // Load company data if needed
       await _loadCompanyData(foundCompany.code);
       final emp = _employees.where((e) =>
           e.email.toLowerCase() == cleanEmail.toLowerCase() || e.id == uid).firstOrNull;
@@ -820,6 +830,8 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    _cancelSubscriptions();
+
     if (_authService.isAvailable) {
       await _authService.signOut();
     }
@@ -838,7 +850,7 @@ class AppStateController extends ChangeNotifier {
     _notifications = [];
     _activities = [];
 
-    await _storage.clearSession();
+    await _repository.clearSession();
     notifyListeners();
   }
 
@@ -849,8 +861,11 @@ class AppStateController extends ChangeNotifier {
     }
   }
 
-  // Task Methods
-  void createTask(Task newTask) {
+  // ─────────────────────────────────────────────────────────────
+  //  TASK METHODS (Granular CRUD + Deletion)
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> createTask(Task newTask) async {
     // Only Admin can create tasks
     if (!isAdmin) return;
 
@@ -883,103 +898,137 @@ class AppStateController extends ChangeNotifier {
       showBanner: true,
     );
 
-    _persistTasks();
+    notifyListeners();
+    try {
+      await _repository.createTask(_currentCompany.code, newTask);
+    } catch (e) {
+      debugPrint('createTask repository error: $e');
+    }
   }
 
-  void saveProgress(String taskId, List<Subtask> updatedSubtasks, int progressPercent) {
-    // Only User (Karyawan) can update task progress
+  Future<void> deleteTask(String taskId) async {
+    if (!isAdmin) return;
+    _tasks = _tasks.where((t) => t.id != taskId).toList();
+    notifyListeners();
+
+    try {
+      await _repository.deleteTask(_currentCompany.code, taskId);
+    } catch (e) {
+      debugPrint('deleteTask repository error: $e');
+    }
+  }
+
+  Future<void> saveProgress(String taskId, List<Subtask> updatedSubtasks, int progressPercent) async {
+    Task? target;
     _tasks = _tasks.map((t) {
       if (t.id == taskId) {
         final isDone = progressPercent == 100;
-        return t.copyWith(
+        target = t.copyWith(
           subtasks: updatedSubtasks,
           progressPercent: progressPercent,
           status: isDone ? TaskStatus.completed : TaskStatus.inProgress,
           needsReview: isDone ? true : t.needsReview,
         );
+        return target!;
       }
       return t;
     }).toList();
 
-    final target = _tasks.firstWhere((t) => t.id == taskId);
-    final newActivity = ActivityItem(
-      id: 'act-${DateTime.now().millisecondsSinceEpoch}',
-      userName: currentUserName,
-      userAvatar: currentUserAvatar,
-      actionPrefix: 'memperbarui progres tugas',
-      targetObject: target.title,
-      actionSuffix: 'ke $progressPercent%.',
-      timeAgo: 'Baru saja',
-      department: target.division,
-      type: 'task',
-    );
-    _activities = [newActivity, ..._activities];
-
-    pushNotification(
-      NotificationItem(
-        id: 'notif-prog-${DateTime.now().millisecondsSinceEpoch}',
-        title: '📈 Progres Tugas Diperbarui ($progressPercent%)',
-        description: '$currentUserName memperbarui "${target.title}" ke $progressPercent%.',
-        time: 'Baru saja',
+    if (target != null) {
+      final newActivity = ActivityItem(
+        id: 'act-${DateTime.now().millisecondsSinceEpoch}',
+        userName: currentUserName,
+        userAvatar: currentUserAvatar,
+        actionPrefix: 'memperbarui progres tugas',
+        targetObject: target!.title,
+        actionSuffix: 'ke $progressPercent%.',
+        timeAgo: 'Baru saja',
+        department: target!.division,
         type: 'task',
-        targetTab: 1,
-        targetId: target.id,
-        timestamp: DateTime.now(),
-      ),
-      showBanner: true,
-    );
+      );
+      _activities = [newActivity, ..._activities];
 
-    _persistTasks();
+      pushNotification(
+        NotificationItem(
+          id: 'notif-prog-${DateTime.now().millisecondsSinceEpoch}',
+          title: '📈 Progres Tugas Diperbarui ($progressPercent%)',
+          description: '$currentUserName memperbarui "${target!.title}" ke $progressPercent%.',
+          time: 'Baru saja',
+          type: 'task',
+          targetTab: 1,
+          targetId: target!.id,
+          timestamp: DateTime.now(),
+        ),
+        showBanner: true,
+      );
+
+      notifyListeners();
+      try {
+        await _repository.updateTask(_currentCompany.code, target!);
+      } catch (e) {
+        debugPrint('saveProgress repository error: $e');
+      }
+    }
   }
 
-  void approveTask(String taskId) {
-    // Only Admin can review and approve tasks
+  Future<void> approveTask(String taskId) async {
     if (!isAdmin) return;
 
+    Task? target;
     _tasks = _tasks.map((t) {
       if (t.id == taskId) {
-        return t.copyWith(
+        target = t.copyWith(
           status: TaskStatus.completed,
           progressPercent: 100,
           subtasks: t.subtasks.map((st) => st.copyWith(completed: true)).toList(),
           needsReview: false,
         );
+        return target!;
       }
       return t;
     }).toList();
 
-    final target = _tasks.firstWhere((t) => t.id == taskId);
-    final newActivity = ActivityItem(
-      id: 'act-${DateTime.now().millisecondsSinceEpoch}',
-      userName: currentUserName,
-      userAvatar: currentUserAvatar,
-      actionPrefix: 'menyetujui & menyelesaikan tugas',
-      targetObject: target.title,
-      timeAgo: 'Baru saja',
-      department: target.division,
-      type: 'task',
-    );
-    _activities = [newActivity, ..._activities];
+    if (target != null) {
+      final newActivity = ActivityItem(
+        id: 'act-${DateTime.now().millisecondsSinceEpoch}',
+        userName: currentUserName,
+        userAvatar: currentUserAvatar,
+        actionPrefix: 'menyetujui & menyelesaikan tugas',
+        targetObject: target!.title,
+        timeAgo: 'Baru saja',
+        department: target!.division,
+        type: 'task',
+      );
+      _activities = [newActivity, ..._activities];
 
-    pushNotification(
-      NotificationItem(
-        id: 'notif-appr-${DateTime.now().millisecondsSinceEpoch}',
-        title: '✅ Tugas Telah Disetujui & Selesai',
-        description: 'Sarah Pratama telah menyetujui tugas "${target.title}".',
-        time: 'Baru saja',
-        type: 'review',
-        targetTab: 1,
-        targetId: target.id,
-        timestamp: DateTime.now(),
-      ),
-      showBanner: true,
-    );
+      pushNotification(
+        NotificationItem(
+          id: 'notif-appr-${DateTime.now().millisecondsSinceEpoch}',
+          title: '✅ Tugas Telah Disetujui & Selesai',
+          description: 'Sarah Pratama telah menyetujui tugas "${target!.title}".',
+          time: 'Baru saja',
+          type: 'review',
+          targetTab: 1,
+          targetId: target!.id,
+          timestamp: DateTime.now(),
+        ),
+        showBanner: true,
+      );
 
-    _persistTasks();
+      notifyListeners();
+      try {
+        await _repository.updateTask(_currentCompany.code, target!);
+      } catch (e) {
+        debugPrint('approveTask repository error: $e');
+      }
+    }
   }
 
-  // SOP Methods
-  void addSop(SOPDocument newSop) {
+  // ─────────────────────────────────────────────────────────────
+  //  SOP METHODS (Granular CRUD + Deletion)
+  // ─────────────────────────────────────────────────────────────
+
+  Future<void> addSop(SOPDocument newSop) async {
     if (!isAdmin) return;
 
     _sops = [newSop, ..._sops];
@@ -999,8 +1048,8 @@ class AppStateController extends ChangeNotifier {
     pushNotification(
       NotificationItem(
         id: 'notif-sop-${DateTime.now().millisecondsSinceEpoch}',
-        title: '📑 SOP Baru Diterbitkan',
-        description: 'Dokumen "${newSop.title}" (${newSop.category}) siap dipelajari.',
+        title: '📑 SOP Baru: ${newSop.code}',
+        description: '${newSop.title} telah diterbitkan dan wajib dipatuhi.',
         time: 'Baru saja',
         type: 'sop',
         targetTab: 2,
@@ -1010,53 +1059,83 @@ class AppStateController extends ChangeNotifier {
       showBanner: true,
     );
 
-    _persistSops();
+    notifyListeners();
+    try {
+      await _repository.createSop(_currentCompany.code, newSop);
+    } catch (e) {
+      debugPrint('addSop repository error: $e');
+    }
   }
 
-  void confirmReadSop(String sopId) {
+  Future<void> deleteSop(String sopId) async {
+    if (!isAdmin) return;
+    _sops = _sops.where((s) => s.id != sopId).toList();
+    notifyListeners();
+
+    try {
+      await _repository.deleteSop(_currentCompany.code, sopId);
+    } catch (e) {
+      debugPrint('deleteSop repository error: $e');
+    }
+  }
+
+  Future<void> confirmReadSop(String sopId) async {
+    SOPDocument? target;
     _sops = _sops.map((s) {
       if (s.id == sopId) {
-        final currentPct = s.readProgressPercent ?? 94;
-        final nextPct = (currentPct + 6).clamp(0, 100);
-        return s.copyWith(
-          isReadByMe: true,
-          readProgressPercent: nextPct,
-          isUrgentMandatory: false,
-        );
+        target = s.copyWith(isReadByMe: true);
+        return target!;
       }
       return s;
     }).toList();
 
-    final targetSop = _sops.firstWhere((s) => s.id == sopId);
+    final sop = target ?? _sops.firstWhere((s) => s.id == sopId);
     final newActivity = ActivityItem(
       id: 'act-${DateTime.now().millisecondsSinceEpoch}',
       userName: currentUserName,
       userAvatar: currentUserAvatar,
-      actionPrefix: 'memverifikasi kepatuhan SOP',
-      targetObject: targetSop.title,
+      actionPrefix: 'mengonfirmasi membaca',
+      targetObject: sop.code,
       timeAgo: 'Baru saja',
-      department: targetSop.category,
+      department: sop.category,
       type: 'sop',
     );
     _activities = [newActivity, ..._activities];
 
-    _persistSops();
     notifyListeners();
+    if (target != null) {
+      try {
+        await _repository.updateSop(_currentCompany.code, target!);
+      } catch (e) {
+        debugPrint('confirmReadSop repository error: $e');
+      }
+    }
   }
 
-  void toggleBookmarkSop(String sopId) {
+  Future<void> toggleBookmarkSop(String sopId) async {
+    SOPDocument? target;
     _sops = _sops.map((s) {
       if (s.id == sopId) {
-        return s.copyWith(isBookmarked: !s.isBookmarked);
+        target = s.copyWith(isBookmarked: !s.isBookmarked);
+        return target!;
       }
       return s;
     }).toList();
 
-    _persistSops();
     notifyListeners();
+    if (target != null) {
+      try {
+        await _repository.updateSop(_currentCompany.code, target!);
+      } catch (e) {
+        debugPrint('toggleBookmarkSop repository error: $e');
+      }
+    }
   }
 
-  // Broadcast & Notifications
+  // ─────────────────────────────────────────────────────────────
+  //  BROADCAST & NOTIFICATIONS
+  // ─────────────────────────────────────────────────────────────
+
   void sendBroadcast(String message, String targetDivision) {
     if (!isAdmin) return;
 
@@ -1089,7 +1168,6 @@ class AppStateController extends ChangeNotifier {
 
   void markAllNotificationsAsRead() {
     _notifications = _notifications.map((n) => n.copyWith(unread: false)).toList();
-    _persistNotifications();
     notifyListeners();
   }
 
@@ -1100,87 +1178,31 @@ class AppStateController extends ChangeNotifier {
       }
       return n;
     }).toList();
-    _persistNotifications();
     notifyListeners();
   }
 
-  void clearAllNotifications() {
+  Future<void> deleteNotification(String notifId) async {
+    _notifications = _notifications.where((n) => n.id != notifId).toList();
+    notifyListeners();
+    await _repository.deleteNotification(_currentCompany.code, notifId);
+  }
+
+  Future<void> clearAllNotifications() async {
+    final ids = _notifications.map((n) => n.id).toList();
     _notifications = [];
-    _persistNotifications();
     notifyListeners();
+    await _repository.clearAllNotifications(_currentCompany.code, ids);
   }
 
-  int _simIndex = 0;
-  void simulateIncomingRealtimeEvent() {
-    final now = DateTime.now();
-    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  // ─────────────────────────────────────────────────────────────
+  //  CHAT METHODS (Granular CRUD + Deletion)
+  // ─────────────────────────────────────────────────────────────
 
-    final events = [
-      NotificationItem(
-        id: 'sim-${now.millisecondsSinceEpoch}-1',
-        title: '💬 Pesan Masuk (#it-tech-core)',
-        description: 'Kevin M: Database transaksi Aurora berhasil sinkron tanpa downtime.',
-        time: 'Baru saja ($timeStr)',
-        type: 'chat',
-        senderName: 'Kevin Maulana',
-        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-        targetTab: 4,
-        targetId: 'ch-it',
-        timestamp: now,
-      ),
-      NotificationItem(
-        id: 'sim-${now.millisecondsSinceEpoch}-2',
-        title: '📋 Update Subtask Operasional',
-        description: 'Budi Santoso telah menyelesaikan checklist Pallet B4 di Cikarang.',
-        time: 'Baru saja ($timeStr)',
-        type: 'task',
-        senderName: 'Budi Santoso',
-        senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
-        targetTab: 1,
-        timestamp: now,
-      ),
-      NotificationItem(
-        id: 'sim-${now.millisecondsSinceEpoch}-3',
-        title: '🚨 Peringatan Batas Waktu',
-        description: 'Tugas Audit Stok Gudang Cikarang tersisa 2 jam sebelum batas akhir.',
-        time: 'Baru saja ($timeStr)',
-        type: 'deadline',
-        targetTab: 1,
-        timestamp: now,
-      ),
-      NotificationItem(
-        id: 'sim-${now.millisecondsSinceEpoch}-4',
-        title: '👑 Permintaan Review Aset',
-        description: 'Nadia Salsabila mengajukan review materi visual Mid-Year Sale.',
-        time: 'Baru saja ($timeStr)',
-        type: 'review',
-        senderName: 'Nadia Salsabila',
-        senderAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-        targetTab: 1,
-        timestamp: now,
-      ),
-      NotificationItem(
-        id: 'sim-${now.millisecondsSinceEpoch}-5',
-        title: '📑 SOP Wajib: Prosedur APD',
-        description: 'Pembaruan keselamatan alat berat baru memerlukan verifikasi staf.',
-        time: 'Baru saja ($timeStr)',
-        type: 'sop',
-        targetTab: 2,
-        timestamp: now,
-      ),
-    ];
-
-    final event = events[_simIndex % events.length];
-    _simIndex++;
-    pushNotification(event, showBanner: true);
-  }
-
-  // Chat Methods
-  void sendChatMessage({
+  Future<void> sendChatMessage({
     required String content,
     String? channelId,
     String? receiverId,
-  }) {
+  }) async {
     if (content.trim().isEmpty) return;
 
     final now = DateTime.now();
@@ -1215,7 +1237,7 @@ class AppStateController extends ChangeNotifier {
       }).toList();
     }
 
-    _persistChat();
+    notifyListeners();
 
     final channelName = channelId != null
         ? (_channels.firstWhere((c) => c.id == channelId, orElse: () => _channels.first).name)
@@ -1235,11 +1257,75 @@ class AppStateController extends ChangeNotifier {
       ),
       showBanner: true,
     );
+
+    try {
+      await _repository.sendMessage(_currentCompany.code, newMsg);
+      await _repository.saveChannels(_currentCompany.code, _channels);
+    } catch (e) {
+      debugPrint('sendChatMessage repository error: $e');
+    }
+  }
+
+  Future<void> deleteChatMessage(String messageId) async {
+    _messages = _messages.where((m) => m.id != messageId).toList();
+    notifyListeners();
+    try {
+      await _repository.deleteMessage(_currentCompany.code, messageId);
+    } catch (e) {
+      debugPrint('deleteChatMessage repository error: $e');
+    }
+  }
+
+  int _simIndex = 0;
+  void simulateIncomingRealtimeEvent() {
+    final now = DateTime.now();
+    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+    final events = [
+      NotificationItem(
+        id: 'sim-${now.millisecondsSinceEpoch}-1',
+        title: '💬 Pesan Masuk (#it-tech-core)',
+        description: 'Kevin M: Database transaksi Aurora berhasil sinkron tanpa downtime.',
+        time: 'Baru saja ($timeStr)',
+        type: 'chat',
+        senderName: 'Kevin Maulana',
+        senderAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
+        targetTab: 4,
+        targetId: 'ch-it',
+        timestamp: now,
+      ),
+      NotificationItem(
+        id: 'sim-${now.millisecondsSinceEpoch}-2',
+        title: '📋 Update Subtask Operasional',
+        description: 'Budi Santoso telah menyelesaikan checklist Pallet B4 di Cikarang.',
+        time: 'Baru saja ($timeStr)',
+        type: 'task',
+        senderName: 'Budi Santoso',
+        senderAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
+        targetTab: 1,
+        timestamp: now,
+      ),
+    ];
+
+    final event = events[_simIndex % events.length];
+    _simIndex++;
+    pushNotification(event, showBanner: true);
+  }
+
+  bool _isDisposed = false;
+
+  @override
+  void notifyListeners() {
+    if (!_isDisposed) {
+      super.notifyListeners();
+    }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _inAppBannerTimer?.cancel();
+    _cancelSubscriptions();
     super.dispose();
   }
 }

@@ -1,3 +1,5 @@
+import '../core/utils/data_parser.dart';
+
 class ChatMessage {
   final String id;
   final String senderId;
@@ -47,9 +49,7 @@ class ChatMessage {
       senderRole: map['senderRole'] as String? ?? '',
       content: map['content'] as String? ?? '',
       time: map['time'] as String? ?? '',
-      timestamp: map['timestamp'] != null
-          ? DateTime.tryParse(map['timestamp'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      timestamp: DataParser.parseDateTime(map['timestamp']),
       channelId: map['channelId'] as String?,
       receiverId: map['receiverId'] as String?,
     );

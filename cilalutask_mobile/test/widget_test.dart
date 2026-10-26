@@ -161,7 +161,7 @@ void main() {
     expect(controller.employees.isEmpty, isTrue);
 
     // Admin reviews and accepts the request
-    controller.acceptJoinRequest(req.id);
+    await controller.acceptJoinRequest(req.id);
 
     expect(controller.pendingJoinRequestsCount, 0);
     expect(controller.employees.length, 1);

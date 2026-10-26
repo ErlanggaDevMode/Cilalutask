@@ -1,3 +1,5 @@
+import '../core/utils/data_parser.dart';
+
 class NotificationItem {
   final String id;
   final String title;
@@ -81,9 +83,7 @@ class NotificationItem {
       senderAvatar: map['senderAvatar'] as String?,
       targetTab: map['targetTab'] as int?,
       targetId: map['targetId'] as String?,
-      timestamp: map['timestamp'] != null
-          ? DateTime.tryParse(map['timestamp'] as String)
-          : null,
+      timestamp: DataParser.parseNullableDateTime(map['timestamp']),
     );
   }
 }

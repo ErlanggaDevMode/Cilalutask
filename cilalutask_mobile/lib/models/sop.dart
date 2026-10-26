@@ -1,3 +1,5 @@
+import '../core/utils/data_parser.dart';
+
 class ContentSection {
   final String heading;
   final List<String> items;
@@ -27,7 +29,7 @@ class ContentSection {
   factory ContentSection.fromMap(Map<String, dynamic> map) {
     return ContentSection(
       heading: map['heading'] as String? ?? '',
-      items: (map['items'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      items: DataParser.parseStringList(map['items']),
     );
   }
 }
@@ -168,10 +170,10 @@ class SOPDocument {
       checkPoints: map['checkPoints'] as String?,
       duration: map['duration'] as String?,
       description: map['description'] as String?,
-      contentSections: (map['contentSections'] as List<dynamic>?)
-              ?.map((s) => ContentSection.fromMap(s as Map<String, dynamic>))
-              .toList() ??
-          [],
+      contentSections: DataParser.parseList<ContentSection>(
+        map['contentSections'],
+        (s) => ContentSection.fromMap(s),
+      ),
       isReadByMe: map['isReadByMe'] as bool? ?? false,
     );
   }

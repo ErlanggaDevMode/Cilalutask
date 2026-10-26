@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../core/theme/app_colors.dart';
 import '../core/widgets/custom_avatar.dart';
 import '../core/widgets/in_app_notification_banner.dart';
+import '../repositories/data_exception.dart';
 import '../state/app_state_scope.dart';
 import '../widgets/modals/notification_center_bottom_sheet.dart';
 import '../widgets/modals/profile_bottom_sheet.dart';
@@ -32,6 +33,47 @@ class MainNavigationScreen extends StatelessWidget {
       default:
         return 'Beranda';
     }
+  }
+
+  Widget _buildSyncBadge(SyncStatus status) {
+    IconData icon;
+    Color color;
+    String tooltip;
+
+    switch (status) {
+      case SyncStatus.synced:
+        icon = Icons.cloud_done_rounded;
+        color = AppColors.success;
+        tooltip = 'Cloud Firestore Tersinkron';
+        break;
+      case SyncStatus.syncing:
+        icon = Icons.sync_rounded;
+        color = AppColors.primary;
+        tooltip = 'Menyinkronkan...';
+        break;
+      case SyncStatus.offline:
+        icon = Icons.cloud_off_rounded;
+        color = AppColors.warning;
+        tooltip = 'Mode Offline (Cache Tersimpan)';
+        break;
+      case SyncStatus.error:
+        icon = Icons.cloud_off_rounded;
+        color = AppColors.danger;
+        tooltip = 'Sinkronisasi Gagal';
+        break;
+    }
+
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 11, color: color),
+      ),
+    );
   }
 
   @override
@@ -134,6 +176,8 @@ class MainNavigationScreen extends StatelessWidget {
                               ),
                             ),
                           ),
+                          const SizedBox(width: 4),
+                          _buildSyncBadge(state.syncStatus),
                         ],
                       ),
                       Text(
@@ -205,6 +249,17 @@ class MainNavigationScreen extends StatelessWidget {
             index: currentTab,
             children: screens,
           ),
+          if (state.isLoadingCompanyData)
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: LinearProgressIndicator(
+                minHeight: 3,
+                backgroundColor: Colors.transparent,
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+              ),
+            ),
           const InAppNotificationBanner(),
         ],
       ),

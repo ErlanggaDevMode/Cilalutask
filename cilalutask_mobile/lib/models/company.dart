@@ -1,3 +1,5 @@
+import '../core/utils/data_parser.dart';
+
 enum JoinRequestStatus {
   pending,
   approved,
@@ -68,9 +70,7 @@ class Company {
       adminName: map['adminName'] as String? ?? '',
       adminEmail: map['adminEmail'] as String? ?? '',
       adminUid: map['adminUid'] as String? ?? map['adminId'] as String? ?? '',
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      createdAt: DataParser.parseDateTime(map['createdAt']),
       industry: map['industry'] as String? ?? 'Teknologi & Operasional',
     );
   }
@@ -171,9 +171,7 @@ class JoinRequest {
       role: map['role'] as String? ?? '',
       avatar: map['avatar'] as String? ?? '',
       status: parseStatus(map['status'] as String?),
-      requestedAt: map['requestedAt'] != null
-          ? DateTime.tryParse(map['requestedAt'] as String) ?? DateTime.now()
-          : DateTime.now(),
+      requestedAt: DataParser.parseDateTime(map['requestedAt']),
     );
   }
 }

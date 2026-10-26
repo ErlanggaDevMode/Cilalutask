@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../core/utils/data_parser.dart';
 import '../models/company.dart';
 import '../models/task.dart';
 import '../models/sop.dart';
@@ -8,6 +10,8 @@ import '../models/chat_model.dart';
 import '../models/notification_item.dart';
 import '../models/user_role.dart';
 
+/// Local offline cache and session storage service using SharedPreferences.
+/// Operates as a fast, write-through/read-through cache for operational data partitioned by company code.
 class LocalStorageService {
   static const String _keyCompanies = 'cilalu_companies';
   static const String _keyCurrentCompanyCode = 'cilalu_current_company_code';
@@ -16,6 +20,9 @@ class LocalStorageService {
   static const String _keyCurrentEmployeeId = 'cilalu_current_employee_id';
   static const String _keyCustomAvatar = 'cilalu_custom_avatar';
   static const String _keyJoinRequests = 'cilalu_join_requests';
+  static const String _keyUserId = 'cilalu_user_id';
+  static const String _keyUserEmail = 'cilalu_user_email';
+
   static const String _prefixTasks = 'cilalu_tasks_';
   static const String _prefixSops = 'cilalu_sops_';
   static const String _prefixEmployees = 'cilalu_employees_';
@@ -41,8 +48,8 @@ class LocalStorageService {
     final raw = _prefs?.getString(_keyCompanies);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => Company.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<Company>(decoded, (m) => Company.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -58,9 +65,6 @@ class LocalStorageService {
     await init();
     return _prefs?.getString(_keyCurrentCompanyCode);
   }
-
-  static const String _keyUserId = 'cilalu_user_id';
-  static const String _keyUserEmail = 'cilalu_user_email';
 
   // --- Auth & Session ---
   Future<void> saveSession({
@@ -132,13 +136,19 @@ class LocalStorageService {
     await _prefs?.setString(_keyJoinRequests, jsonEncode(jsonList));
   }
 
+  Future<void> deleteJoinRequest(String requestId) async {
+    final existing = await loadJoinRequests() ?? [];
+    existing.removeWhere((r) => r.id == requestId);
+    await saveJoinRequests(existing);
+  }
+
   Future<List<JoinRequest>?> loadJoinRequests() async {
     await init();
     final raw = _prefs?.getString(_keyJoinRequests);
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => JoinRequest.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<JoinRequest>(decoded, (m) => JoinRequest.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -151,13 +161,19 @@ class LocalStorageService {
     await _prefs?.setString('$_prefixTasks$companyCode', jsonEncode(jsonList));
   }
 
+  Future<void> deleteTask(String companyCode, String taskId) async {
+    final existing = await loadTasks(companyCode) ?? [];
+    existing.removeWhere((t) => t.id == taskId);
+    await saveTasks(companyCode, existing);
+  }
+
   Future<List<Task>?> loadTasks(String companyCode) async {
     await init();
     final raw = _prefs?.getString('$_prefixTasks$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => Task.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<Task>(decoded, (m) => Task.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -170,13 +186,19 @@ class LocalStorageService {
     await _prefs?.setString('$_prefixSops$companyCode', jsonEncode(jsonList));
   }
 
+  Future<void> deleteSop(String companyCode, String sopId) async {
+    final existing = await loadSops(companyCode) ?? [];
+    existing.removeWhere((s) => s.id == sopId);
+    await saveSops(companyCode, existing);
+  }
+
   Future<List<SOPDocument>?> loadSops(String companyCode) async {
     await init();
     final raw = _prefs?.getString('$_prefixSops$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => SOPDocument.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<SOPDocument>(decoded, (m) => SOPDocument.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -189,13 +211,19 @@ class LocalStorageService {
     await _prefs?.setString('$_prefixEmployees$companyCode', jsonEncode(jsonList));
   }
 
+  Future<void> deleteEmployee(String companyCode, String empId) async {
+    final existing = await loadEmployees(companyCode) ?? [];
+    existing.removeWhere((e) => e.id == empId);
+    await saveEmployees(companyCode, existing);
+  }
+
   Future<List<Assignee>?> loadEmployees(String companyCode) async {
     await init();
     final raw = _prefs?.getString('$_prefixEmployees$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => Assignee.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<Assignee>(decoded, (m) => Assignee.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -213,8 +241,8 @@ class LocalStorageService {
     final raw = _prefs?.getString('$_prefixChannels$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => ChatChannel.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<ChatChannel>(decoded, (m) => ChatChannel.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -227,13 +255,19 @@ class LocalStorageService {
     await _prefs?.setString('$_prefixMessages$companyCode', jsonEncode(jsonList));
   }
 
+  Future<void> deleteMessage(String companyCode, String messageId) async {
+    final existing = await loadMessages(companyCode) ?? [];
+    existing.removeWhere((m) => m.id == messageId);
+    await saveMessages(companyCode, existing);
+  }
+
   Future<List<ChatMessage>?> loadMessages(String companyCode) async {
     await init();
     final raw = _prefs?.getString('$_prefixMessages$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => ChatMessage.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<ChatMessage>(decoded, (m) => ChatMessage.fromMap(m));
     } catch (_) {
       return null;
     }
@@ -246,16 +280,33 @@ class LocalStorageService {
     await _prefs?.setString('$_prefixNotifs$companyCode', jsonEncode(jsonList));
   }
 
+  Future<void> deleteNotification(String companyCode, String notifId) async {
+    final existing = await loadNotifications(companyCode) ?? [];
+    existing.removeWhere((n) => n.id == notifId);
+    await saveNotifications(companyCode, existing);
+  }
+
   Future<List<NotificationItem>?> loadNotifications(String companyCode) async {
     await init();
     final raw = _prefs?.getString('$_prefixNotifs$companyCode');
     if (raw == null || raw.isEmpty) return null;
     try {
-      final decoded = jsonDecode(raw) as List<dynamic>;
-      return decoded.map((item) => NotificationItem.fromMap(item as Map<String, dynamic>)).toList();
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<NotificationItem>(decoded, (m) => NotificationItem.fromMap(m));
     } catch (_) {
       return null;
     }
+  }
+
+  // --- Reset Cache per Company ---
+  Future<void> clearCompanyCache(String companyCode) async {
+    await init();
+    await _prefs?.remove('$_prefixTasks$companyCode');
+    await _prefs?.remove('$_prefixSops$companyCode');
+    await _prefs?.remove('$_prefixEmployees$companyCode');
+    await _prefs?.remove('$_prefixChannels$companyCode');
+    await _prefs?.remove('$_prefixMessages$companyCode');
+    await _prefs?.remove('$_prefixNotifs$companyCode');
   }
 
   // --- Reset All (Factory Reset) ---
