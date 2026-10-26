@@ -1,12 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cilalutask_mobile/models/company.dart';
 import 'package:cilalutask_mobile/models/employee.dart';
 import 'package:cilalutask_mobile/models/task.dart';
 import 'package:cilalutask_mobile/models/sop.dart';
-import 'package:cilalutask_mobile/models/user_role.dart';
 import 'package:cilalutask_mobile/repositories/data_exception.dart';
-import 'package:cilalutask_mobile/repositories/cilalu_repository.dart';
 import 'package:cilalutask_mobile/state/app_state_controller.dart';
 
 void main() {
