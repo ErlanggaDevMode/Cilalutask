@@ -27,7 +27,6 @@ final List<Assignee> kEmployees = [
     hasTeamBadge: true,
     teamCount: 2,
     email: 'kevin.maulana@cilulataks.id',
-    password: 'password123',
   ),
   const Assignee(
     id: 'emp-2',
@@ -37,7 +36,6 @@ final List<Assignee> kEmployees = [
     division: 'Pemasaran',
     role: 'Senior Content Strategist',
     email: 'nadia.salsabila@cilulataks.id',
-    password: 'password123',
   ),
   const Assignee(
     id: 'emp-3',
@@ -47,7 +45,6 @@ final List<Assignee> kEmployees = [
     division: 'Operasional',
     role: 'Supervisor Gudang',
     email: 'budi.santoso@cilulataks.id',
-    password: 'password123',
   ),
   const Assignee(
     id: 'emp-4',
@@ -57,7 +54,6 @@ final List<Assignee> kEmployees = [
     division: 'Finance & Akuntansi',
     role: 'Tax & Compliance Officer',
     email: 'rian.dermawan@cilulataks.id',
-    password: 'password123',
   ),
   const Assignee(
     id: 'emp-5',
@@ -67,7 +63,6 @@ final List<Assignee> kEmployees = [
     division: 'Operasional',
     role: 'Quality & Inbound Lead',
     email: 'ahmad.fauzi@cilulataks.id',
-    password: 'password123',
   ),
   const Assignee(
     id: 'emp-6',
@@ -77,7 +72,6 @@ final List<Assignee> kEmployees = [
     division: 'Pemasaran',
     role: 'Visual Designer',
     email: 'dina.putri@cilulataks.id',
-    password: 'password123',
   ),
 ];
 

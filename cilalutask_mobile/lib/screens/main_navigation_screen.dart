@@ -109,7 +109,7 @@ class MainNavigationScreen extends StatelessWidget {
                       Row(
                         children: [
                           const Text(
-                            'CILULATAKS',
+                            'CILALUTASK',
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,

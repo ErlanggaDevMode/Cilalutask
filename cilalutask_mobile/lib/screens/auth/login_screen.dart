@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../models/company.dart';
 import '../../models/employee.dart';
 import '../../models/user_role.dart';
 import '../../state/app_state_scope.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -52,6 +55,9 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    _loginCompanyCodeController.text = 'CILALU-88';
+    _loginEmailController.text = 'sarah.pratama@cilulataks.id';
+    _loginPasswordController.text = 'password123';
   }
 
   @override
@@ -75,6 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
   void _onRoleChanged(UserRole role) {
     setState(() {
       _selectedRole = role;
+      if (role == UserRole.user) {
+        _loginEmailController.text = 'kevin.maulana@cilulataks.id';
+      } else {
+        _loginEmailController.text = 'sarah.pratama@cilulataks.id';
+      }
     });
   }
 
@@ -151,7 +162,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       color: AppColors.textMuted,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 16),
+
+                  // Auth Tabs Switcher: Masuk | Daftar PT | Gabung Tim
+                  Container(
+                    height: 44,
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        _buildAuthTabItem(0, 'Masuk', Icons.login_rounded),
+                        _buildAuthTabItem(1, 'Daftar PT', Icons.domain_add_rounded),
+                        _buildAuthTabItem(2, 'Gabung Tim', Icons.group_add_rounded),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
 
                   // Main Container Card
                   Container(
@@ -181,6 +211,48 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuthTabItem(int index, String label, IconData icon) {
+    final isSelected = _activeAuthTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _activeAuthTab = index;
+            if (index == 2) {
+              _joinCompanyCodeController.text = '';
+            }
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected ? Colors.white : AppColors.textMuted,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                  color: isSelected ? Colors.white : AppColors.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -217,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Masuk ke Akun',
+          'Masuk',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -361,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               final companyCode = _loginCompanyCodeController.text
                   .trim()
                   .toUpperCase();
@@ -381,70 +453,26 @@ class _LoginScreenState extends State<LoginScreen> {
                 return;
               }
 
-              // --- Cari perusahaan berdasarkan ID ---
-              final allCompanies = state.companies;
-              final foundCompany = allCompanies
-                  .where((c) => c.code.toUpperCase() == companyCode)
-                  .firstOrNull;
-
-              if (foundCompany == null) {
+              try {
+                await state.loginWithCredentials(
+                  companyCode: companyCode,
+                  email: email,
+                  password: password,
+                  role: _selectedRole,
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                final message = AuthService.getReadableAuthError(e);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'ID Perusahaan "$companyCode" tidak ditemukan.',
+                      e is FirebaseAuthException
+                          ? message
+                          : e.toString().replaceAll('Exception: ', ''),
                     ),
                     backgroundColor: Colors.redAccent,
                   ),
                 );
-                return;
-              }
-
-              final targetCompany = foundCompany; // non-nullable dari sini
-
-              if (_selectedRole == UserRole.admin) {
-                // Cocokkan email & password admin perusahaan yang ditemukan
-                if (email == targetCompany.adminEmail &&
-                    password == targetCompany.adminPassword) {
-                  state.loginAsAdmin(company: targetCompany);
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Email atau Password Admin salah.'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
-              } else {
-                // Muat data karyawan perusahaan target terlebih dahulu
-                // lalu cocokkan email & password
-                if (targetCompany.code != state.currentCompany.code) {
-                  state.switchCompany(targetCompany);
-                }
-                final companyEmployees = state.employees;
-                if (companyEmployees.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Karyawan belum terdaftar di perusahaan ini. Ajukan lewat "Gabung Tim".',
-                      ),
-                      backgroundColor: Colors.amber,
-                    ),
-                  );
-                  return;
-                }
-                try {
-                  final emp = companyEmployees.firstWhere(
-                    (e) => e.email == email && e.password == password,
-                  );
-                  state.loginAsEmployee(emp, company: targetCompany);
-                } catch (_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Email atau Password Karyawan salah.'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
               }
             },
             style: ElevatedButton.styleFrom(
@@ -792,35 +820,53 @@ class _LoginScreenState extends State<LoginScreen> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (_regCompanyNameController.text.trim().isEmpty ||
                   _regCompanyCodeController.text.trim().isEmpty ||
-                  _regAdminNameController.text.trim().isEmpty) {
+                  _regAdminNameController.text.trim().isEmpty ||
+                  _regAdminEmailController.text.trim().isEmpty ||
+                  _regAdminPasswordController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Mohon isi semua data perusahaan.'),
+                    content: Text('Mohon isi semua data perusahaan dan kata sandi admin.'),
                   ),
                 );
                 return;
               }
 
-              state.registerCompany(
-                name: _regCompanyNameController.text.trim(),
-                code: _regCompanyCodeController.text.trim().toUpperCase(),
-                adminName: _regAdminNameController.text.trim(),
-                adminEmail: _regAdminEmailController.text.trim(),
-                adminPassword: _regAdminPasswordController.text,
-                industry: _selectedIndustry,
-              );
+              try {
+                await state.registerCompany(
+                  name: _regCompanyNameController.text.trim(),
+                  code: _regCompanyCodeController.text.trim().toUpperCase(),
+                  adminName: _regAdminNameController.text.trim(),
+                  adminEmail: _regAdminEmailController.text.trim(),
+                  adminPassword: _regAdminPasswordController.text,
+                  industry: _selectedIndustry,
+                );
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Perusahaan ${_regCompanyNameController.text} berhasil dibuat!',
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Perusahaan ${_regCompanyNameController.text} berhasil dibuat!',
+                    ),
+                    backgroundColor: AppColors.success,
                   ),
-                  backgroundColor: AppColors.success,
-                ),
-              );
+                );
+              } catch (e) {
+                if (!context.mounted) return;
+                final message = AuthService.getReadableAuthError(e);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      e is FirebaseAuthException
+                          ? message
+                          : e.toString().replaceAll('Exception: ', ''),
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,
@@ -1259,33 +1305,50 @@ class _LoginScreenState extends State<LoginScreen> {
           width: double.infinity,
           height: 48,
           child: ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (_joinCompanyCodeController.text.trim().isEmpty ||
-                  _joinNameController.text.trim().isEmpty) {
+                  _joinNameController.text.trim().isEmpty ||
+                  _joinEmailController.text.trim().isEmpty ||
+                  _joinPasswordController.text.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Mohon isi ID Perusahaan dan Nama Anda.'),
+                    content: Text('Mohon lengkapi ID Perusahaan, Nama, Email, dan Kata Sandi.'),
                   ),
                 );
                 return;
               }
 
-              final req = state.submitJoinRequest(
-                companyCode: _joinCompanyCodeController.text
-                    .trim()
-                    .toUpperCase(),
-                name: _joinNameController.text.trim(),
-                email: _joinEmailController.text.trim(),
-                password: _joinPasswordController.text,
-                division: _selectedJoinDivision,
-                role: _joinRoleController.text.trim(),
-              );
+              try {
+                final req = await state.submitJoinRequest(
+                  companyCode: _joinCompanyCodeController.text
+                      .trim()
+                      .toUpperCase(),
+                  name: _joinNameController.text.trim(),
+                  email: _joinEmailController.text.trim(),
+                  password: _joinPasswordController.text,
+                  division: _selectedJoinDivision,
+                  role: _joinRoleController.text.trim(),
+                );
 
-              setState(() {
-                _submittedJoinRequest = req;
-              });
+                setState(() {
+                  _submittedJoinRequest = req;
+                });
 
-              HapticFeedback.mediumImpact();
+                HapticFeedback.mediumImpact();
+              } catch (e) {
+                if (!context.mounted) return;
+                final message = AuthService.getReadableAuthError(e);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      e is FirebaseAuthException
+                          ? message
+                          : e.toString().replaceAll('Exception: ', ''),
+                    ),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primary,

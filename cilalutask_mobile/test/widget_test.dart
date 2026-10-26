@@ -26,8 +26,8 @@ void main() {
     // Verify brand header and login tabs exist
     expect(find.text('CILALUTASK'), findsOneWidget);
     expect(find.text('Masuk'), findsWidgets);
-    expect(find.text('Daftar PT'), findsOneWidget);
-    expect(find.text('Gabung Tim'), findsOneWidget);
+    expect(find.text('Daftar PT'), findsWidgets);
+    expect(find.text('Gabung Tim'), findsWidgets);
     expect(find.text('Masuk sebagai Admin'), findsWidgets);
   });
 
@@ -105,13 +105,13 @@ void main() {
     expect(find.text('#umum'), findsOneWidget);
   });
 
-  test('Multi-Company: Company registration starts in pure blank state', () {
+  test('Multi-Company: Company registration starts in pure blank state', () async {
     final controller = AppStateController();
     addTearDown(() => controller.dispose());
     expect(controller.currentCompany.code, 'CILALU-88');
 
     // Register a new company
-    controller.registerCompany(
+    await controller.registerCompany(
       name: 'PT Sinergi Abadi',
       code: 'SINERGI-01',
       adminName: 'Bambang Sudiro',
@@ -130,12 +130,12 @@ void main() {
     expect(controller.employees.isEmpty, isTrue);
   });
 
-  test('Join Company Flow: Employee requests with Company ID, Admin accepts', () {
+  test('Join Company Flow: Employee requests with Company ID, Admin accepts', () async {
     final controller = AppStateController();
     addTearDown(() => controller.dispose());
 
     // Register a fresh company
-    controller.registerCompany(
+    await controller.registerCompany(
       name: 'PT Nusantara Prima',
       code: 'NUSANTARA-99',
       adminName: 'Hendra Gunawan',
@@ -146,7 +146,7 @@ void main() {
     expect(controller.pendingJoinRequestsCount, 0);
 
     // Prospective employee submits join request with Company ID
-    final req = controller.submitJoinRequest(
+    final req = await controller.submitJoinRequest(
       companyCode: 'NUSANTARA-99',
       name: 'Ahmad Fauzi',
       email: 'ahmad@gmail.com',
@@ -219,7 +219,7 @@ void main() {
     final controller1 = AppStateController();
     await controller1.initStorage();
 
-    controller1.registerCompany(
+    await controller1.registerCompany(
       name: 'PT Maju Bersama',
       code: 'MAJU-77',
       adminName: 'Budi Santoso',

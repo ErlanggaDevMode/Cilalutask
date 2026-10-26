@@ -10,7 +10,7 @@ class Company {
   final String code; // Unique Company Code (e.g. CILALU-88, CORP-4821)
   final String adminName;
   final String adminEmail;
-  final String adminPassword;
+  final String adminUid; // Firebase Auth UID of company admin
   final DateTime createdAt;
   final String industry;
 
@@ -20,7 +20,7 @@ class Company {
     required this.code,
     required this.adminName,
     required this.adminEmail,
-    required this.adminPassword,
+    this.adminUid = '',
     required this.createdAt,
     this.industry = 'Teknologi & Operasional',
   });
@@ -31,7 +31,7 @@ class Company {
     String? code,
     String? adminName,
     String? adminEmail,
-    String? adminPassword,
+    String? adminUid,
     DateTime? createdAt,
     String? industry,
   }) {
@@ -41,7 +41,7 @@ class Company {
       code: code ?? this.code,
       adminName: adminName ?? this.adminName,
       adminEmail: adminEmail ?? this.adminEmail,
-      adminPassword: adminPassword ?? this.adminPassword,
+      adminUid: adminUid ?? this.adminUid,
       createdAt: createdAt ?? this.createdAt,
       industry: industry ?? this.industry,
     );
@@ -54,7 +54,7 @@ class Company {
       'code': code,
       'adminName': adminName,
       'adminEmail': adminEmail,
-      'adminPassword': adminPassword,
+      'adminUid': adminUid,
       'createdAt': createdAt.toIso8601String(),
       'industry': industry,
     };
@@ -67,7 +67,7 @@ class Company {
       code: map['code'] as String? ?? '',
       adminName: map['adminName'] as String? ?? '',
       adminEmail: map['adminEmail'] as String? ?? '',
-      adminPassword: map['adminPassword'] as String? ?? '',
+      adminUid: map['adminUid'] as String? ?? map['adminId'] as String? ?? '',
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'] as String) ?? DateTime.now()
           : DateTime.now(),
@@ -80,9 +80,9 @@ class JoinRequest {
   final String id;
   final String companyCode;
   final String companyName;
+  final String userId; // Firebase Auth UID
   final String userName;
   final String userEmail;
-  final String userPassword;
   final String division;
   final String role;
   final String avatar;
@@ -93,9 +93,9 @@ class JoinRequest {
     required this.id,
     required this.companyCode,
     required this.companyName,
+    this.userId = '',
     required this.userName,
     required this.userEmail,
-    required this.userPassword,
     required this.division,
     required this.role,
     required this.avatar,
@@ -107,9 +107,9 @@ class JoinRequest {
     String? id,
     String? companyCode,
     String? companyName,
+    String? userId,
     String? userName,
     String? userEmail,
-    String? userPassword,
     String? division,
     String? role,
     String? avatar,
@@ -120,9 +120,9 @@ class JoinRequest {
       id: id ?? this.id,
       companyCode: companyCode ?? this.companyCode,
       companyName: companyName ?? this.companyName,
+      userId: userId ?? this.userId,
       userName: userName ?? this.userName,
       userEmail: userEmail ?? this.userEmail,
-      userPassword: userPassword ?? this.userPassword,
       division: division ?? this.division,
       role: role ?? this.role,
       avatar: avatar ?? this.avatar,
@@ -136,9 +136,9 @@ class JoinRequest {
       'id': id,
       'companyCode': companyCode,
       'companyName': companyName,
+      'userId': userId,
       'userName': userName,
       'userEmail': userEmail,
-      'userPassword': userPassword,
       'division': division,
       'role': role,
       'avatar': avatar,
@@ -164,9 +164,9 @@ class JoinRequest {
       id: map['id'] as String? ?? '',
       companyCode: map['companyCode'] as String? ?? '',
       companyName: map['companyName'] as String? ?? '',
+      userId: map['userId'] as String? ?? map['uid'] as String? ?? '',
       userName: map['userName'] as String? ?? '',
       userEmail: map['userEmail'] as String? ?? '',
-      userPassword: map['userPassword'] as String? ?? '',
       division: map['division'] as String? ?? '',
       role: map['role'] as String? ?? '',
       avatar: map['avatar'] as String? ?? '',

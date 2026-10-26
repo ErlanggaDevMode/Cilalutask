@@ -59,12 +59,17 @@ class LocalStorageService {
     return _prefs?.getString(_keyCurrentCompanyCode);
   }
 
+  static const String _keyUserId = 'cilalu_user_id';
+  static const String _keyUserEmail = 'cilalu_user_email';
+
   // --- Auth & Session ---
   Future<void> saveSession({
     required bool isAuthenticated,
     required UserRole role,
     String? employeeId,
     String? customAvatar,
+    String? userId,
+    String? userEmail,
   }) async {
     await init();
     await _prefs?.setBool(_keyIsAuthenticated, isAuthenticated);
@@ -79,6 +84,26 @@ class LocalStorageService {
     } else {
       await _prefs?.remove(_keyCustomAvatar);
     }
+    if (userId != null) {
+      await _prefs?.setString(_keyUserId, userId);
+    } else {
+      await _prefs?.remove(_keyUserId);
+    }
+    if (userEmail != null) {
+      await _prefs?.setString(_keyUserEmail, userEmail);
+    } else {
+      await _prefs?.remove(_keyUserEmail);
+    }
+  }
+
+  Future<void> clearSession() async {
+    await init();
+    await _prefs?.remove(_keyIsAuthenticated);
+    await _prefs?.remove(_keyUserRole);
+    await _prefs?.remove(_keyCurrentEmployeeId);
+    await _prefs?.remove(_keyCustomAvatar);
+    await _prefs?.remove(_keyUserId);
+    await _prefs?.remove(_keyUserEmail);
   }
 
   Future<Map<String, dynamic>> loadSession() async {
@@ -88,11 +113,15 @@ class LocalStorageService {
     final role = roleName == 'user' ? UserRole.user : UserRole.admin;
     final employeeId = _prefs?.getString(_keyCurrentEmployeeId);
     final customAvatar = _prefs?.getString(_keyCustomAvatar);
+    final userId = _prefs?.getString(_keyUserId);
+    final userEmail = _prefs?.getString(_keyUserEmail);
     return {
       'isAuthenticated': isAuth,
       'role': role,
       'employeeId': employeeId,
       'customAvatar': customAvatar,
+      'userId': userId,
+      'userEmail': userEmail,
     };
   }
 

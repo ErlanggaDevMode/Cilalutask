@@ -12,13 +12,16 @@ import '../models/company.dart';
 import '../data/mock_data.dart';
 import '../services/local_storage_service.dart';
 import '../services/firestore_service.dart';
+import '../services/auth_service.dart';
 
 class AppStateController extends ChangeNotifier {
   final LocalStorageService _storage = LocalStorageService();
   final FirestoreService _firestore = FirestoreService();
+  final AuthService _authService = AuthService();
   bool _isStorageLoaded = false;
   bool get isStorageLoaded => _isStorageLoaded;
   bool get isCloudConnected => _firestore.isAvailable;
+  AuthService get authService => _authService;
 
   // Authentication & Role
   bool _isAuthenticated = false; // Starts at Login screen; allows instant demo login as Admin or Karyawan
@@ -33,7 +36,7 @@ class AppStateController extends ChangeNotifier {
       code: 'CILALU-88',
       adminName: 'Sarah Pratama',
       adminEmail: 'sarah.pratama@cilulataks.id',
-      adminPassword: 'password123',
+      adminUid: 'admin-sarah-default',
       createdAt: DateTime.now().subtract(const Duration(days: 30)),
       industry: 'Teknologi & Operasional Cloud',
     ),
@@ -101,39 +104,67 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> _loadCompanyData(String companyCode, {String? savedEmpId}) async {
-    final savedTasks = await _storage.loadTasks(companyCode);
-    final savedSops = await _storage.loadSops(companyCode);
-    final savedEmployees = await _storage.loadEmployees(companyCode);
-    final savedChannels = await _storage.loadChannels(companyCode);
-    final savedMessages = await _storage.loadMessages(companyCode);
-    final savedNotifs = await _storage.loadNotifications(companyCode);
+    // 1. If connected to cloud Firestore, sync cloud data
+    if (_firestore.isAvailable) {
+      try {
+        final cloudTasks = await _firestore.loadTasks(companyCode);
+        if (cloudTasks.isNotEmpty) _tasks = cloudTasks;
 
+        final cloudSops = await _firestore.loadSops(companyCode);
+        if (cloudSops.isNotEmpty) _sops = cloudSops;
+
+        final cloudEmployees = await _firestore.loadEmployees(companyCode);
+        if (cloudEmployees.isNotEmpty) _employees = cloudEmployees;
+
+        final cloudChannels = await _firestore.loadChannels(companyCode);
+        if (cloudChannels.isNotEmpty) _channels = cloudChannels;
+
+        final cloudMessages = await _firestore.loadMessages(companyCode);
+        if (cloudMessages.isNotEmpty) _messages = cloudMessages;
+
+        final cloudNotifs = await _firestore.loadNotifications(companyCode);
+        if (cloudNotifs.isNotEmpty) _notifications = cloudNotifs;
+
+        final cloudRequests = await _firestore.loadJoinRequests(companyCode);
+        if (cloudRequests.isNotEmpty) _joinRequests = cloudRequests;
+      } catch (e) {
+        debugPrint('Firestore load fallback to local storage');
+      }
+    }
+
+    // 2. Fallback to local storage
+    final savedTasks = await _storage.loadTasks(companyCode);
     if (savedTasks != null) {
       _tasks = savedTasks;
     } else if (companyCode != 'CILALU-88') {
       _tasks = [];
     }
 
+    final savedSops = await _storage.loadSops(companyCode);
     if (savedSops != null) {
       _sops = savedSops;
     } else if (companyCode != 'CILALU-88') {
       _sops = [];
     }
 
+    final savedEmployees = await _storage.loadEmployees(companyCode);
     if (savedEmployees != null) {
       _employees = savedEmployees;
     } else if (companyCode != 'CILALU-88') {
       _employees = [];
     }
 
+    final savedChannels = await _storage.loadChannels(companyCode);
     if (savedChannels != null) {
       _channels = savedChannels;
     }
 
+    final savedMessages = await _storage.loadMessages(companyCode);
     if (savedMessages != null) {
       _messages = savedMessages;
     }
 
+    final savedNotifs = await _storage.loadNotifications(companyCode);
     if (savedNotifs != null) {
       _notifications = savedNotifs;
     } else if (companyCode != 'CILALU-88') {
@@ -154,6 +185,8 @@ class AppStateController extends ChangeNotifier {
       role: _currentUserRole,
       employeeId: _currentEmployee?.id,
       customAvatar: _customUserAvatar,
+      userId: _authService.currentUid,
+      userEmail: _authService.currentEmail,
     );
   }
 
@@ -432,22 +465,47 @@ class AppStateController extends ChangeNotifier {
   }
 
   // Company & Multi-tenant Registration Methods
-  void registerCompany({
+  // Company & Multi-tenant Registration Methods
+  Future<void> registerCompany({
     required String name,
     required String code,
     required String adminName,
     required String adminEmail,
     required String adminPassword,
     String industry = 'Operasional & Bisnis',
-  }) {
+  }) async {
     final cleanCode = code.trim().toUpperCase();
+    final cleanEmail = adminEmail.trim();
+
+    // 1. Authenticate with Firebase Auth if available
+    String adminUid = 'admin-${DateTime.now().millisecondsSinceEpoch}';
+    if (_authService.isAvailable) {
+      try {
+        final cred = await _authService.signUp(
+          email: cleanEmail,
+          password: adminPassword,
+        );
+        adminUid = cred.user?.uid ?? adminUid;
+      } catch (e) {
+        try {
+          final cred = await _authService.signIn(
+            email: cleanEmail,
+            password: adminPassword,
+          );
+          adminUid = cred.user?.uid ?? adminUid;
+        } catch (_) {
+          rethrow;
+        }
+      }
+    }
+
     final newComp = Company(
       id: 'comp-${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
       code: cleanCode,
       adminName: adminName.trim(),
-      adminEmail: adminEmail.trim(),
-      adminPassword: adminPassword,
+      adminEmail: cleanEmail,
+      adminUid: adminUid,
       createdAt: DateTime.now(),
       industry: industry,
     );
@@ -495,15 +553,39 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  JoinRequest submitJoinRequest({
+  Future<JoinRequest> submitJoinRequest({
     required String companyCode,
     required String name,
     required String email,
     required String password,
     required String division,
     required String role,
-  }) {
+  }) async {
     final cleanCode = companyCode.trim().toUpperCase();
+    final cleanEmail = email.trim();
+
+    // Authenticate / Register user in Firebase Auth if available
+    String userId = 'user-${DateTime.now().millisecondsSinceEpoch}';
+    if (_authService.isAvailable) {
+      try {
+        final cred = await _authService.signUp(
+          email: cleanEmail,
+          password: password,
+        );
+        userId = cred.user?.uid ?? userId;
+      } catch (e) {
+        try {
+          final cred = await _authService.signIn(
+            email: cleanEmail,
+            password: password,
+          );
+          userId = cred.user?.uid ?? userId;
+        } catch (_) {
+          rethrow;
+        }
+      }
+    }
+
     final targetComp = _companies.firstWhere(
       (c) => c.code.toUpperCase() == cleanCode,
       orElse: () => Company(
@@ -512,7 +594,7 @@ class AppStateController extends ChangeNotifier {
         code: cleanCode,
         adminName: 'Admin Perusahaan',
         adminEmail: 'admin@${cleanCode.toLowerCase()}.id',
-        adminPassword: 'password123',
+        adminUid: '',
         createdAt: DateTime.now(),
       ),
     );
@@ -521,9 +603,9 @@ class AppStateController extends ChangeNotifier {
       id: 'req-${DateTime.now().millisecondsSinceEpoch}',
       companyCode: cleanCode,
       companyName: targetComp.name,
+      userId: userId,
       userName: name.trim(),
-      userEmail: email.trim(),
-      userPassword: password,
+      userEmail: cleanEmail,
       division: division.trim(),
       role: role.trim(),
       avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=256',
@@ -565,7 +647,7 @@ class AppStateController extends ChangeNotifier {
     if (acceptedReq != null) {
       final req = acceptedReq!;
       final newEmp = Assignee(
-        id: 'emp-${DateTime.now().millisecondsSinceEpoch}',
+        id: req.userId.isNotEmpty ? req.userId : 'emp-${DateTime.now().millisecondsSinceEpoch}',
         name: req.userName,
         shortName: req.userName.split(' ').first,
         avatar: req.avatar,
@@ -574,7 +656,6 @@ class AppStateController extends ChangeNotifier {
         hasTeamBadge: true,
         teamCount: 1,
         email: req.userEmail,
-        password: req.userPassword,
       );
 
       _employees = [..._employees, newEmp];
@@ -655,6 +736,63 @@ class AppStateController extends ChangeNotifier {
   }
 
   // Auth Methods
+  Future<void> loginWithCredentials({
+    required String companyCode,
+    required String email,
+    required String password,
+    required UserRole role,
+  }) async {
+    final cleanCode = companyCode.trim().toUpperCase();
+    final cleanEmail = email.trim();
+
+    // 1. Verify Company Existence
+    final foundCompany = _companies.where(
+      (c) => c.code.toUpperCase() == cleanCode,
+    ).firstOrNull;
+
+    if (foundCompany == null) {
+      throw Exception('ID Perusahaan "$cleanCode" tidak ditemukan.');
+    }
+
+    // 2. Authenticate with Firebase Auth if available
+    String uid = 'uid-${cleanEmail.hashCode}';
+    if (_authService.isAvailable) {
+      final cred = await _authService.signIn(email: cleanEmail, password: password);
+      uid = cred.user?.uid ?? uid;
+    }
+
+    // 3. Verify Membership and Role Authorization
+    if (role == UserRole.admin) {
+      final isAdmin = foundCompany.adminEmail.toLowerCase() == cleanEmail.toLowerCase() ||
+          (foundCompany.adminUid.isNotEmpty && foundCompany.adminUid == uid);
+      if (!isAdmin) {
+        throw Exception('Akun ini tidak memiliki hak akses sebagai Administrator di $cleanCode.');
+      }
+      _currentCompany = foundCompany;
+      _currentUserRole = UserRole.admin;
+      _currentEmployee = null;
+    } else {
+      if (foundCompany.code != _currentCompany.code) {
+        _currentCompany = foundCompany;
+      }
+      // Load company data if needed
+      await _loadCompanyData(foundCompany.code);
+      final emp = _employees.where((e) =>
+          e.email.toLowerCase() == cleanEmail.toLowerCase() || e.id == uid).firstOrNull;
+      if (emp == null) {
+        throw Exception('Akun Anda belum terdaftar sebagai anggota di $cleanCode. Silakan ajukan melalui "Gabung Tim".');
+      }
+      _currentUserRole = UserRole.user;
+      _currentEmployee = emp;
+    }
+
+    _isAuthenticated = true;
+    _currentTabIndex = 0;
+    _persistSession();
+    _persistCompanies();
+    notifyListeners();
+  }
+
   void loginAsAdmin({Company? company}) {
     if (company != null) {
       _currentCompany = company;
@@ -681,9 +819,26 @@ class AppStateController extends ChangeNotifier {
     notifyListeners();
   }
 
-  void logout() {
+  Future<void> logout() async {
+    if (_authService.isAvailable) {
+      await _authService.signOut();
+    }
     _isAuthenticated = false;
-    _persistSession();
+    _currentUserRole = UserRole.admin;
+    _currentEmployee = null;
+    _currentTabIndex = 0;
+    _activeInAppNotification = null;
+
+    // Reset sensitive in-memory data completely to prevent lingering leaks across accounts
+    _tasks = [];
+    _sops = [];
+    _employees = [];
+    _channels = [];
+    _messages = [];
+    _notifications = [];
+    _activities = [];
+
+    await _storage.clearSession();
     notifyListeners();
   }
 

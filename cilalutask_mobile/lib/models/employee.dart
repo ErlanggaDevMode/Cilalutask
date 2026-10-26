@@ -10,7 +10,6 @@ class Assignee {
   final bool hasTeamBadge;
   final int teamCount;
   final String email;
-  final String password;
 
   const Assignee({
     required this.id,
@@ -22,7 +21,6 @@ class Assignee {
     this.hasTeamBadge = false,
     this.teamCount = 0,
     this.email = '',
-    this.password = '',
   });
 
   Assignee copyWith({
@@ -35,7 +33,6 @@ class Assignee {
     bool? hasTeamBadge,
     int? teamCount,
     String? email,
-    String? password,
   }) {
     return Assignee(
       id: id ?? this.id,
@@ -47,7 +44,6 @@ class Assignee {
       hasTeamBadge: hasTeamBadge ?? this.hasTeamBadge,
       teamCount: teamCount ?? this.teamCount,
       email: email ?? this.email,
-      password: password ?? this.password,
     );
   }
 
@@ -62,7 +58,6 @@ class Assignee {
       'hasTeamBadge': hasTeamBadge,
       'teamCount': teamCount,
       'email': email,
-      'password': password,
     };
   }
 
@@ -77,7 +72,6 @@ class Assignee {
       hasTeamBadge: map['hasTeamBadge'] as bool? ?? false,
       teamCount: map['teamCount'] as int? ?? 0,
       email: map['email'] as String? ?? '',
-      password: map['password'] as String? ?? '',
     );
   }
 }

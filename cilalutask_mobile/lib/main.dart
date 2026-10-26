@@ -37,7 +37,7 @@ class CilalutaskApp extends StatelessWidget {
         listenable: controller,
         builder: (context, _) {
           return MaterialApp(
-            title: 'CILULATAKS Mobile',
+            title: 'Cilalutask Mobile',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             home: controller.isAuthenticated
