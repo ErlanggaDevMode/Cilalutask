@@ -1,10 +1,6 @@
 import '../core/utils/data_parser.dart';
 
-enum JoinRequestStatus {
-  pending,
-  approved,
-  rejected,
-}
+enum JoinRequestStatus { pending, approved, rejected }
 
 class Company {
   final String id;

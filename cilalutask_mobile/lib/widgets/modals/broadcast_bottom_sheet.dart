@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 
 class BroadcastBottomSheet extends StatefulWidget {
   final void Function(String message, String targetDivision) onSendBroadcast;
 
-  const BroadcastBottomSheet({
-    super.key,
-    required this.onSendBroadcast,
-  });
+  const BroadcastBottomSheet({super.key, required this.onSendBroadcast});
 
   static Future<void> show(
     BuildContext context, {
-    required void Function(String message, String targetDivision) onSendBroadcast,
+    required void Function(String message, String targetDivision)
+    onSendBroadcast,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -97,7 +96,11 @@ class _BroadcastBottomSheetState extends State<BroadcastBottomSheet> {
           // Header
           Row(
             children: [
-              const Icon(Icons.campaign_rounded, color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.campaign_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Kirim Pengumuman Tim',
@@ -109,7 +112,11 @@ class _BroadcastBottomSheetState extends State<BroadcastBottomSheet> {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
@@ -132,10 +139,16 @@ class _BroadcastBottomSheetState extends State<BroadcastBottomSheet> {
             value: _targetDivision,
             style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
             items: _divisions
-                .map((div) => DropdownMenuItem(
-                      value: div,
-                      child: Text(div == 'Semua Divisi' ? '$div (Broadcast Menyeluruh)' : 'Divisi $div'),
-                    ))
+                .map(
+                  (div) => DropdownMenuItem(
+                    value: div,
+                    child: Text(
+                      div == 'Semua Divisi'
+                          ? '$div (Broadcast Menyeluruh)'
+                          : 'Divisi $div',
+                    ),
+                  ),
+                )
                 .toList(),
             onChanged: (val) {
               if (val != null) setState(() => _targetDivision = val);
@@ -176,7 +189,10 @@ class _BroadcastBottomSheetState extends State<BroadcastBottomSheet> {
               Expanded(
                 child: ElevatedButton.icon(
                   onPressed: _sent ? null : _submit,
-                  icon: Icon(_sent ? Icons.check_rounded : Icons.send_rounded, size: 16),
+                  icon: Icon(
+                    _sent ? Icons.check_rounded : Icons.send_rounded,
+                    size: 16,
+                  ),
                   label: Text(
                     _sent ? 'Terkirim!' : 'Kirim Sekarang',
                     style: const TextStyle(color: Colors.white, fontSize: 13),

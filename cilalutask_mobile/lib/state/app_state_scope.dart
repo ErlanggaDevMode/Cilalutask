@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'app_state_controller.dart';
 
 class AppStateScope extends InheritedNotifier<AppStateController> {

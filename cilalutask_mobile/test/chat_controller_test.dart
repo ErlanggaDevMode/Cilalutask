@@ -32,28 +32,33 @@ void main() {
       expect(directMsgs, isA<List<ChatMessage>>());
     });
 
-    test('sendChatMessage adds message and updates channel lastMessage', () async {
-      final controller = ChatController();
-      addTearDown(() => controller.dispose());
+    test(
+      'sendChatMessage adds message and updates channel lastMessage',
+      () async {
+        final controller = ChatController();
+        addTearDown(() => controller.dispose());
 
-      final newMsg = ChatMessage(
-        id: 'msg-test-1',
-        channelId: 'ch-umum',
-        senderId: 'admin-1',
-        senderName: 'Sarah',
-        senderAvatar: '',
-        senderRole: 'Admin',
-        content: 'Halo tim testing!',
-        time: '12:00',
-        timestamp: DateTime.now(),
-      );
+        final newMsg = ChatMessage(
+          id: 'msg-test-1',
+          channelId: 'ch-umum',
+          senderId: 'admin-1',
+          senderName: 'Sarah',
+          senderAvatar: '',
+          senderRole: 'Admin',
+          content: 'Halo tim testing!',
+          time: '12:00',
+          timestamp: DateTime.now(),
+        );
 
-      await controller.sendChatMessage('TEST-CO', newMsg);
+        await controller.sendChatMessage('TEST-CO', newMsg);
 
-      expect(controller.messages.last.id, 'msg-test-1');
-      final updatedCh = controller.channels.firstWhere((c) => c.id == 'ch-umum');
-      expect(updatedCh.lastMessage, 'Halo tim testing!');
-    });
+        expect(controller.messages.last.id, 'msg-test-1');
+        final updatedCh = controller.channels.firstWhere(
+          (c) => c.id == 'ch-umum',
+        );
+        expect(updatedCh.lastMessage, 'Halo tim testing!');
+      },
+    );
 
     test('deleteChatMessage removes message correctly', () async {
       final controller = ChatController();
@@ -69,9 +74,16 @@ void main() {
       final controller = ChatController();
       addTearDown(() => controller.dispose());
 
-      await controller.addChannel('TEST-CO', 'rnd-infrastruktur', 'Kanal khusus RnD');
+      await controller.addChannel(
+        'TEST-CO',
+        'rnd-infrastruktur',
+        'Kanal khusus RnD',
+      );
 
-      expect(controller.channels.any((c) => c.name == '#rnd-infrastruktur'), isTrue);
+      expect(
+        controller.channels.any((c) => c.name == '#rnd-infrastruktur'),
+        isTrue,
+      );
     });
 
     test('clear resets channels and messages', () {

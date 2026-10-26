@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../models/task.dart';
 
 class UpdateProgressBottomSheet extends StatefulWidget {
   final Task task;
-  final void Function(String taskId, List<Subtask> updatedSubtasks, int progressPercent) onSaveProgress;
+  final void Function(
+    String taskId,
+    List<Subtask> updatedSubtasks,
+    int progressPercent,
+  )
+  onSaveProgress;
 
   const UpdateProgressBottomSheet({
     super.key,
@@ -15,7 +21,12 @@ class UpdateProgressBottomSheet extends StatefulWidget {
   static Future<void> show(
     BuildContext context, {
     required Task task,
-    required void Function(String taskId, List<Subtask> updatedSubtasks, int progressPercent) onSaveProgress,
+    required void Function(
+      String taskId,
+      List<Subtask> updatedSubtasks,
+      int progressPercent,
+    )
+    onSaveProgress,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -24,15 +35,14 @@ class UpdateProgressBottomSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => UpdateProgressBottomSheet(
-        task: task,
-        onSaveProgress: onSaveProgress,
-      ),
+      builder: (context) =>
+          UpdateProgressBottomSheet(task: task, onSaveProgress: onSaveProgress),
     );
   }
 
   @override
-  State<UpdateProgressBottomSheet> createState() => _UpdateProgressBottomSheetState();
+  State<UpdateProgressBottomSheet> createState() =>
+      _UpdateProgressBottomSheetState();
 }
 
 class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
@@ -88,7 +98,11 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.refresh_rounded, size: 18, color: AppColors.primary),
+                const Icon(
+                  Icons.refresh_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Update Progres Tugas',
@@ -100,7 +114,11 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -118,7 +136,10 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(6),
@@ -183,7 +204,9 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: is100 ? AppColors.successDark : AppColors.primary,
+                              color: is100
+                                  ? AppColors.successDark
+                                  : AppColors.primary,
                             ),
                           ),
                         ],
@@ -192,7 +215,9 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(6),
                         child: LinearProgressIndicator(
-                          value: _totalCount > 0 ? _completedCount / _totalCount : 1.0,
+                          value: _totalCount > 0
+                              ? _completedCount / _totalCount
+                              : 1.0,
                           minHeight: 8,
                           backgroundColor: Colors.white,
                           valueColor: AlwaysStoppedAnimation<Color>(
@@ -225,14 +250,19 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                     borderRadius: BorderRadius.circular(12),
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
                       decoration: BoxDecoration(
                         color: st.completed
                             ? AppColors.successLight.withOpacity(0.7)
                             : Colors.white,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: st.completed ? AppColors.success.withOpacity(0.4) : AppColors.border,
+                          color: st.completed
+                              ? AppColors.success.withOpacity(0.4)
+                              : AppColors.border,
                         ),
                       ),
                       child: Row(
@@ -243,7 +273,9 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                                 ? Icons.check_box_rounded
                                 : Icons.check_box_outline_blank_rounded,
                             size: 20,
-                            color: st.completed ? AppColors.success : AppColors.textMuted,
+                            color: st.completed
+                                ? AppColors.success
+                                : AppColors.textMuted,
                           ),
                           const SizedBox(width: 10),
                           Expanded(
@@ -252,9 +284,15 @@ class _UpdateProgressBottomSheetState extends State<UpdateProgressBottomSheet> {
                               style: TextStyle(
                                 fontSize: 13,
                                 height: 1.3,
-                                color: st.completed ? AppColors.textMuted : AppColors.textPrimary,
-                                decoration: st.completed ? TextDecoration.lineThrough : null,
-                                fontWeight: st.completed ? FontWeight.normal : FontWeight.w500,
+                                color: st.completed
+                                    ? AppColors.textMuted
+                                    : AppColors.textPrimary,
+                                decoration: st.completed
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                                fontWeight: st.completed
+                                    ? FontWeight.normal
+                                    : FontWeight.w500,
                               ),
                             ),
                           ),

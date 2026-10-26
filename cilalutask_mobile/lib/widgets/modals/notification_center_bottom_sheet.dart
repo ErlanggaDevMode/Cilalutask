@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../state/app_state_scope.dart';
 
@@ -73,10 +74,18 @@ class _NotificationCenterBottomSheetState
     final unreadCount = state.unreadNotificationsCount;
 
     final filteredNotifs = allNotifs.where((n) {
-      if (_selectedFilter == 'unread') return n.unread;
-      if (_selectedFilter == 'task') return n.type == 'task' || n.type == 'review' || n.type == 'deadline';
-      if (_selectedFilter == 'chat') return n.type == 'chat';
-      if (_selectedFilter == 'sop') return n.type == 'sop';
+      if (_selectedFilter == 'unread') {
+        return n.unread;
+      }
+      if (_selectedFilter == 'task') {
+        return n.type == 'task' || n.type == 'review' || n.type == 'deadline';
+      }
+      if (_selectedFilter == 'chat') {
+        return n.type == 'chat';
+      }
+      if (_selectedFilter == 'sop') {
+        return n.type == 'sop';
+      }
       return true;
     }).toList();
 
@@ -112,7 +121,11 @@ class _NotificationCenterBottomSheetState
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.notifications_rounded, color: AppColors.primary, size: 18),
+                child: const Icon(
+                  Icons.notifications_rounded,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 10),
               const Expanded(
@@ -129,16 +142,27 @@ class _NotificationCenterBottomSheetState
                 TextButton(
                   onPressed: () => state.markAllNotificationsAsRead(),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     visualDensity: VisualDensity.compact,
                   ),
                   child: Text(
                     'Tandai Baca ($unreadCount)',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
@@ -172,18 +196,26 @@ class _NotificationCenterBottomSheetState
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: const [
-                        Icon(Icons.notifications_off_outlined, size: 40, color: AppColors.textMuted),
+                        Icon(
+                          Icons.notifications_off_outlined,
+                          size: 40,
+                          color: AppColors.textMuted,
+                        ),
                         SizedBox(height: 8),
                         Text(
                           'Tidak ada notifikasi di kategori ini',
-                          style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),
                   )
                 : ListView.separated(
                     itemCount: filteredNotifs.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final item = filteredNotifs[index];
                       final color = _getTypeColor(item.type);
@@ -201,10 +233,14 @@ class _NotificationCenterBottomSheetState
                         child: Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: item.unread ? const Color(0xFFF8FAFC) : Colors.white,
+                            color: item.unread
+                                ? const Color(0xFFF8FAFC)
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(14),
                             border: Border.all(
-                              color: item.unread ? color.withValues(alpha: 0.35) : AppColors.border,
+                              color: item.unread
+                                  ? color.withValues(alpha: 0.35)
+                                  : AppColors.border,
                             ),
                           ),
                           child: Row(
@@ -231,7 +267,9 @@ class _NotificationCenterBottomSheetState
                                             item.title,
                                             style: TextStyle(
                                               fontSize: 13,
-                                              fontWeight: item.unread ? FontWeight.bold : FontWeight.w600,
+                                              fontWeight: item.unread
+                                                  ? FontWeight.bold
+                                                  : FontWeight.w600,
                                               color: AppColors.textPrimary,
                                             ),
                                             maxLines: 1,
@@ -242,7 +280,9 @@ class _NotificationCenterBottomSheetState
                                           Container(
                                             width: 7,
                                             height: 7,
-                                            margin: const EdgeInsets.only(left: 6),
+                                            margin: const EdgeInsets.only(
+                                              left: 6,
+                                            ),
                                             decoration: BoxDecoration(
                                               color: color,
                                               shape: BoxShape.circle,
@@ -264,7 +304,10 @@ class _NotificationCenterBottomSheetState
                                     const SizedBox(height: 4),
                                     Text(
                                       item.time,
-                                      style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -295,7 +338,9 @@ class _NotificationCenterBottomSheetState
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -312,7 +357,9 @@ class _NotificationCenterBottomSheetState
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primaryLight : AppColors.surfaceSecondary,
+          color: isSelected
+              ? AppColors.primaryLight
+              : AppColors.surfaceSecondary,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? AppColors.primaryBorder : AppColors.border,

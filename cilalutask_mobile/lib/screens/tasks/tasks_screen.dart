@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/task_metrics_calculator.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../core/widgets/custom_badge.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../models/task.dart';
 import '../../state/app_state_scope.dart';
 import '../../widgets/modals/create_task_bottom_sheet.dart';
 import '../../widgets/modals/update_progress_bottom_sheet.dart';
 import '../../widgets/modals/review_task_bottom_sheet.dart';
+import '../../widgets/modals/task_filter_bottom_sheet.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -19,9 +26,13 @@ class _TasksScreenState extends State<TasksScreen> {
   String _searchQuery = '';
   String _selectedDivision = 'Semua Divisi';
   String _selectedEmployeeId = 'ALL';
-  TaskStatus _selectedStatus = TaskStatus.inProgress;
+  TaskStatus? _selectedStatus; // null means 'Semua' (All tasks visible)
+  PriorityType? _selectedPriority;
+  TaskSortOption _selectedSort = TaskSortOption.none;
+  bool _urgentOnly = false;
 
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   final List<String> _divisions = [
     'Semua Divisi',
@@ -33,9 +44,42 @@ class _TasksScreenState extends State<TasksScreen> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
+
+  void _onSearchChanged(String val) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        setState(() => _searchQuery = val);
+      }
+    });
+  }
+
+  void _resetAllFilters() {
+    _searchDebounceTimer?.cancel();
+    setState(() {
+      _searchQuery = '';
+      _searchController.clear();
+      _selectedDivision = 'Semua Divisi';
+      _selectedEmployeeId = 'ALL';
+      _selectedStatus = null;
+      _selectedPriority = null;
+      _selectedSort = TaskSortOption.none;
+      _urgentOnly = false;
+    });
+  }
+
+  bool get _hasActiveFilters =>
+      _searchQuery.isNotEmpty ||
+      _selectedDivision != 'Semua Divisi' ||
+      _selectedEmployeeId != 'ALL' ||
+      _selectedStatus != null ||
+      _selectedPriority != null ||
+      _selectedSort != TaskSortOption.none ||
+      _urgentOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -44,44 +88,39 @@ class _TasksScreenState extends State<TasksScreen> {
     final employees = state.employees;
 
     // Counts for status tabs
-    final notStartedCount = tasks.where((t) => t.status == TaskStatus.notStarted).length;
-    final inProgressCount = tasks.where((t) => t.status == TaskStatus.inProgress).length;
-    final completedCount = tasks.where((t) => t.status == TaskStatus.completed).length;
+    final notStartedCount = tasks
+        .where((t) => t.status == TaskStatus.notStarted)
+        .length;
+    final inProgressCount = tasks
+        .where((t) => t.status == TaskStatus.inProgress)
+        .length;
+    final completedCount = tasks
+        .where((t) => t.status == TaskStatus.completed)
+        .length;
 
-    // Filter tasks
-    final filteredTasks = tasks.where((task) {
-      // 1. Status match
-      if (task.status != _selectedStatus) return false;
+    // Filter tasks using pure TaskMetricsCalculator
+    final filteredTasks = TaskMetricsCalculator.filterTasks(
+      tasks,
+      status: _selectedStatus,
+      division: _selectedDivision,
+      employeeId: _selectedEmployeeId,
+      query: _searchQuery,
+      priority: _selectedPriority,
+      urgentOnly: _urgentOnly,
+      sort: _selectedSort,
+    );
 
-      // 2. Division match
-      if (_selectedDivision != 'Semua Divisi') {
-        final queryDiv = _selectedDivision.replaceAll(' & Tech', '');
-        if (!task.division.contains(queryDiv)) return false;
-      }
-
-      // 3. Employee match
-      if (_selectedEmployeeId != 'ALL' && task.assignee.id != _selectedEmployeeId) {
-        return false;
-      }
-
-      // 4. Search query
-      if (_searchQuery.trim().isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matchTitle = task.title.toLowerCase().contains(q);
-        final matchDesc = task.description.toLowerCase().contains(q);
-        final matchAssignee = task.assignee.name.toLowerCase().contains(q);
-        return matchTitle || matchDesc || matchAssignee;
-      }
-
-      return true;
-    }).toList();
+    final hasAdvancedFilter =
+        _selectedPriority != null ||
+        _selectedSort != TaskSortOption.none ||
+        _urgentOnly;
 
     return Stack(
       children: [
         ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 80),
           children: [
-            // 1. Search Bar
+            // 1. Search Bar & Filter Button
             Row(
               children: [
                 Expanded(
@@ -96,11 +135,20 @@ class _TasksScreenState extends State<TasksScreen> {
                       style: const TextStyle(fontSize: 13),
                       decoration: InputDecoration(
                         hintText: 'Cari tugas atau nama karyawan...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.textMuted),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          size: 18,
+                          color: AppColors.textMuted,
+                        ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear_rounded, size: 18, color: AppColors.textMuted),
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                ),
                                 onPressed: () {
+                                  _searchDebounceTimer?.cancel();
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
@@ -109,22 +157,72 @@ class _TasksScreenState extends State<TasksScreen> {
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,
                         focusedBorder: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 12,
+                        ),
                       ),
-                      onChanged: (val) => setState(() => _searchQuery = val),
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primaryBorder),
+                InkWell(
+                  onTap: () async {
+                    final result = await TaskFilterBottomSheet.show(
+                      context,
+                      initialPriority: _selectedPriority,
+                      initialSort: _selectedSort,
+                      initialUrgentOnly: _urgentOnly,
+                    );
+                    if (result != null) {
+                      setState(() {
+                        _selectedPriority = result.priority;
+                        _selectedSort = result.sort;
+                        _urgentOnly = result.urgentOnly;
+                      });
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: hasAdvancedFilter
+                          ? AppColors.primaryDark
+                          : AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: hasAdvancedFilter
+                            ? AppColors.primaryDark
+                            : AppColors.primaryBorder,
+                      ),
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Icon(
+                          Icons.tune_rounded,
+                          color: hasAdvancedFilter
+                              ? Colors.white
+                              : AppColors.primary,
+                          size: 20,
+                        ),
+                        if (hasAdvancedFilter)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF6EE7B7),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 20),
                 ),
               ],
             ),
@@ -143,12 +241,19 @@ class _TasksScreenState extends State<TasksScreen> {
                       onTap: () => setState(() => _selectedDivision = div),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: isActive ? AppColors.primaryDark : Colors.white,
+                          color: isActive
+                              ? AppColors.primaryDark
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: isActive ? AppColors.primaryDark : AppColors.border,
+                            color: isActive
+                                ? AppColors.primaryDark
+                                : AppColors.border,
                           ),
                         ),
                         child: Text(
@@ -156,7 +261,9 @@ class _TasksScreenState extends State<TasksScreen> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
-                            color: isActive ? Colors.white : AppColors.textSecondary,
+                            color: isActive
+                                ? Colors.white
+                                : AppColors.textSecondary,
                           ),
                         ),
                       ),
@@ -180,12 +287,19 @@ class _TasksScreenState extends State<TasksScreen> {
                       onTap: () => setState(() => _selectedEmployeeId = 'ALL'),
                       borderRadius: BorderRadius.circular(20),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: _selectedEmployeeId == 'ALL' ? AppColors.primary : Colors.white,
+                          color: _selectedEmployeeId == 'ALL'
+                              ? AppColors.primary
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: _selectedEmployeeId == 'ALL' ? AppColors.primary : AppColors.border,
+                            color: _selectedEmployeeId == 'ALL'
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                         child: Row(
@@ -195,7 +309,9 @@ class _TasksScreenState extends State<TasksScreen> {
                               style: TextStyle(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w900,
-                                color: _selectedEmployeeId == 'ALL' ? Colors.white : AppColors.textSecondary,
+                                color: _selectedEmployeeId == 'ALL'
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
                               ),
                             ),
                             const SizedBox(width: 4),
@@ -204,7 +320,9 @@ class _TasksScreenState extends State<TasksScreen> {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: _selectedEmployeeId == 'ALL' ? Colors.white : AppColors.textSecondary,
+                                color: _selectedEmployeeId == 'ALL'
+                                    ? Colors.white
+                                    : AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -219,15 +337,23 @@ class _TasksScreenState extends State<TasksScreen> {
                     return Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: InkWell(
-                        onTap: () => setState(() => _selectedEmployeeId = emp.id),
+                        onTap: () =>
+                            setState(() => _selectedEmployeeId = emp.id),
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.primaryLight : Colors.white,
+                            color: isSelected
+                                ? AppColors.primaryLight
+                                : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                              color: isSelected ? AppColors.primary : AppColors.border,
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : AppColors.border,
                               width: isSelected ? 1.5 : 1,
                             ),
                           ),
@@ -245,7 +371,9 @@ class _TasksScreenState extends State<TasksScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
-                                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -259,7 +387,7 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
             const SizedBox(height: 12),
 
-            // 4. Status Tabs (Belum Dimulai, Dalam Proses, Selesai)
+            // 4. Status Tabs (Semua, Belum Dimulai, Dalam Proses, Selesai)
             Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
@@ -269,99 +397,145 @@ class _TasksScreenState extends State<TasksScreen> {
               ),
               child: Row(
                 children: [
-                  _buildStatusTab('Belum Dimulai', TaskStatus.notStarted, notStartedCount),
-                  _buildStatusTab('Dalam Proses', TaskStatus.inProgress, inProgressCount, isBadge: true),
-                  _buildStatusTab('Selesai', TaskStatus.completed, completedCount),
+                  _buildStatusTab('Semua', null, tasks.length),
+                  _buildStatusTab(
+                    'Belum Dimulai',
+                    TaskStatus.notStarted,
+                    notStartedCount,
+                  ),
+                  _buildStatusTab(
+                    'Dalam Proses',
+                    TaskStatus.inProgress,
+                    inProgressCount,
+                    isBadge: true,
+                  ),
+                  _buildStatusTab(
+                    'Selesai',
+                    TaskStatus.completed,
+                    completedCount,
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
+
+            // Active Filter Chips Summary (if any filter is applied)
+            if (_hasActiveFilters) ...[
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  const Text(
+                    'Filter aktif:',
+                    style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  ),
+                  if (_selectedStatus != null)
+                    _buildActiveFilterChip(
+                      _selectedStatus!.label,
+                      () => setState(() => _selectedStatus = null),
+                    ),
+                  if (_selectedDivision != 'Semua Divisi')
+                    _buildActiveFilterChip(
+                      _selectedDivision,
+                      () => setState(() => _selectedDivision = 'Semua Divisi'),
+                    ),
+                  if (_selectedEmployeeId != 'ALL')
+                    _buildActiveFilterChip(
+                      employees
+                          .firstWhere(
+                            (e) => e.id == _selectedEmployeeId,
+                            orElse: () => employees.first,
+                          )
+                          .name,
+                      () => setState(() => _selectedEmployeeId = 'ALL'),
+                    ),
+                  if (_selectedPriority != null)
+                    _buildActiveFilterChip(
+                      _selectedPriority!.label,
+                      () => setState(() => _selectedPriority = null),
+                    ),
+                  if (_selectedSort != TaskSortOption.none)
+                    _buildActiveFilterChip(
+                      _selectedSort.label,
+                      () => setState(() => _selectedSort = TaskSortOption.none),
+                    ),
+                  if (_urgentOnly)
+                    _buildActiveFilterChip(
+                      'Mendesak',
+                      () => setState(() => _urgentOnly = false),
+                    ),
+                  TextButton(
+                    onPressed: _resetAllFilters,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Reset Semua',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.danger,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
 
             // 5. Task Cards List
             if (filteredTasks.isEmpty) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.border),
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        tasks.isEmpty ? Icons.assignment_add : Icons.inbox_rounded,
-                        size: 36,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Text(
-                      tasks.isEmpty
-                          ? 'Belum Ada Tugas di ${state.currentCompany.name}'
-                          : 'Tidak Ada Tugas yang Cocok',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      tasks.isEmpty
-                          ? 'Perusahaan siap diinput secara manual. Mulai dengan membuat tugas baru untuk tim Anda.'
-                          : 'Coba ubah kata kunci pencarian atau reset filter divisi dan status.',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted, height: 1.4),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    if (tasks.isEmpty && state.isAdmin)
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          CreateTaskBottomSheet.show(
-                            context,
-                            employees: employees,
-                            onCreateTask: (newTask) {
-                              state.createTask(newTask);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Tugas "${newTask.title}" berhasil dibuat!'),
-                                  backgroundColor: AppColors.primaryDark,
+              AppEmptyState(
+                icon: tasks.isEmpty
+                    ? Icons.assignment_add
+                    : Icons.inbox_rounded,
+                title: tasks.isEmpty
+                    ? 'Belum Ada Tugas di ${state.currentCompany.name}'
+                    : 'Tidak Ada Tugas yang Cocok',
+                message: tasks.isEmpty
+                    ? 'Perusahaan siap diinput secara manual. Mulai dengan membuat tugas baru untuk tim Anda.'
+                    : 'Coba ubah kata kunci pencarian atau reset filter divisi, status, dan prioritas.',
+                actionLabel: (tasks.isEmpty && state.isAdmin)
+                    ? 'Buat Tugas Baru'
+                    : (tasks.isNotEmpty ? 'Reset Semua Filter' : null),
+                actionIcon: (tasks.isEmpty && state.isAdmin)
+                    ? Icons.add_rounded
+                    : Icons.refresh_rounded,
+                onAction: (tasks.isEmpty && state.isAdmin)
+                    ? () {
+                        CreateTaskBottomSheet.show(
+                          context,
+                          employees: employees,
+                          onCreateTask: (newTask) {
+                            state.createTask(newTask);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Tugas "${newTask.title}" berhasil dibuat!',
                                 ),
-                              );
-                            },
-                          );
-                        },
-                        icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
-                        label: const Text('Buat Tugas Baru', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                      )
-                    else if (tasks.isNotEmpty)
-                      TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                            _searchController.clear();
-                            _selectedDivision = 'Semua Divisi';
-                            _selectedEmployeeId = 'ALL';
-                          });
-                        },
-                        child: const Text('Reset Filter', style: TextStyle(fontWeight: FontWeight.bold)),
-                      ),
-                  ],
-                ),
+                                backgroundColor: AppColors.primaryDark,
+                              ),
+                            );
+                          },
+                        );
+                      }
+                    : (tasks.isNotEmpty ? _resetAllFilters : null),
               ),
             ] else ...[
               ...filteredTasks.map((task) {
-                final completedSubtasks = task.subtasks.where((s) => s.completed).length;
+                final completedSubtasks = task.subtasks
+                    .where((s) => s.completed)
+                    .length;
                 final totalSubtasks = task.subtasks.length;
-                final isDone = task.status == TaskStatus.completed || task.progressPercent >= 100;
+                final isDone =
+                    task.status == TaskStatus.completed ||
+                    task.progressPercent >= 100;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -384,33 +558,89 @@ class _TasksScreenState extends State<TasksScreen> {
                       // Header Tags
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              DivisionBadge(division: task.division),
-                              const SizedBox(width: 6),
-                              PriorityBadge(priority: task.priority),
-                            ],
+                          Expanded(
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              children: [
+                                DivisionBadge(division: task.division),
+                                PriorityBadge(priority: task.priority),
+                              ],
+                            ),
                           ),
-                          IconButton(
-                            icon: const Icon(Icons.more_vert_rounded, size: 18, color: AppColors.textMuted),
-                            onPressed: () {
-                              ReviewTaskBottomSheet.show(
-                                context,
-                                task: task,
-                                onApproveTask: (id) {
-                                  state.approveTask(id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Tugas telah disetujui & ditandai selesai!'),
-                                      backgroundColor: AppColors.primaryDark,
-                                      behavior: SnackBarBehavior.floating,
-                                    ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (state.isAdmin)
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.delete_outline_rounded,
+                                    size: 18,
+                                    color: AppColors.danger,
+                                  ),
+                                  tooltip: 'Hapus Tugas',
+                                  onPressed: () async {
+                                    final confirmed = await AppConfirmDialog.show(
+                                      context,
+                                      title: 'Hapus Tugas?',
+                                      message:
+                                          'Tugas "${task.title}" akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.',
+                                      confirmLabel: 'Ya, Hapus',
+                                      cancelLabel: 'Batal',
+                                      isDestructive: true,
+                                      icon: Icons.delete_forever_rounded,
+                                    );
+                                    if (confirmed && context.mounted) {
+                                      state.deleteTask(task.id);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Tugas "${task.title}" berhasil dihapus.',
+                                          ),
+                                          backgroundColor:
+                                              AppColors.primaryDark,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  },
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.more_vert_rounded,
+                                  size: 18,
+                                  color: AppColors.textMuted,
+                                ),
+                                tooltip: 'Detail & Review',
+                                onPressed: () {
+                                  ReviewTaskBottomSheet.show(
+                                    context,
+                                    task: task,
+                                    onApproveTask: (id) {
+                                      state.approveTask(id);
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Tugas telah disetujui & ditandai selesai!',
+                                          ),
+                                          backgroundColor:
+                                              AppColors.primaryDark,
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
-                              );
-                            },
-                            visualDensity: VisualDensity.compact,
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -444,8 +674,13 @@ class _TasksScreenState extends State<TasksScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_box_outlined, size: 14, color: AppColors.primary),
+                              Icon(
+                                Icons.check_box_outlined,
+                                size: 14,
+                                color: AppColors.primary,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Subtask Checklist',
@@ -457,12 +692,18 @@ class _TasksScreenState extends State<TasksScreen> {
                               ),
                             ],
                           ),
-                          Text(
-                            '$completedSubtasks / $totalSubtasks (${task.progressPercent}%)',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                              color: isDone ? AppColors.successDark : AppColors.textSecondary,
+                          Flexible(
+                            child: Text(
+                              '$completedSubtasks / $totalSubtasks (${task.progressPercent}%)',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: isDone
+                                    ? AppColors.successDark
+                                    : AppColors.textSecondary,
+                              ),
                             ),
                           ),
                         ],
@@ -487,37 +728,56 @@ class _TasksScreenState extends State<TasksScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Row(
-                            children: [
-                              CustomAvatar(
-                                imageUrl: task.assignee.avatar,
-                                fallbackText: task.assignee.name,
-                                radius: 12,
-                                teamCount: task.assignee.hasTeamBadge ? task.assignee.teamCount : null,
-                              ),
-                              const SizedBox(width: 8),
-                              Text(
-                                '${task.assignee.name} ${task.assignee.hasTeamBadge ? '& Tim' : ''}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
+                          Expanded(
+                            child: Row(
+                              children: [
+                                CustomAvatar(
+                                  imageUrl: task.assignee.avatar,
+                                  fallbackText: task.assignee.name,
+                                  radius: 12,
+                                  teamCount: task.assignee.hasTeamBadge
+                                      ? task.assignee.teamCount
+                                      : null,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    '${task.assignee.name} ${task.assignee.hasTeamBadge ? '& Tim' : ''}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                          const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: task.isUrgentDeadline ? AppColors.dangerLight : AppColors.surfaceSecondary,
+                              color: task.isUrgentDeadline
+                                  ? AppColors.dangerLight
+                                  : AppColors.surfaceSecondary,
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  task.isUrgentDeadline ? Icons.access_time_rounded : Icons.calendar_today_rounded,
+                                  task.isUrgentDeadline
+                                      ? Icons.access_time_rounded
+                                      : Icons.calendar_today_rounded,
                                   size: 12,
-                                  color: task.isUrgentDeadline ? AppColors.danger : AppColors.textSecondary,
+                                  color: task.isUrgentDeadline
+                                      ? AppColors.danger
+                                      : AppColors.textSecondary,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
@@ -525,7 +785,9 @@ class _TasksScreenState extends State<TasksScreen> {
                                   style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
-                                    color: task.isUrgentDeadline ? AppColors.danger : AppColors.textSecondary,
+                                    color: task.isUrgentDeadline
+                                        ? AppColors.danger
+                                        : AppColors.textSecondary,
                                   ),
                                 ),
                               ],
@@ -548,7 +810,9 @@ class _TasksScreenState extends State<TasksScreen> {
                                   state.saveProgress(id, subtasks, pct);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Progres tugas berhasil diperbarui!'),
+                                      content: Text(
+                                        'Progres tugas berhasil diperbarui!',
+                                      ),
                                       backgroundColor: AppColors.primaryDark,
                                       behavior: SnackBarBehavior.floating,
                                     ),
@@ -577,7 +841,9 @@ class _TasksScreenState extends State<TasksScreen> {
                                   state.approveTask(id);
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text('Tugas telah disetujui & ditandai selesai!'),
+                                      content: Text(
+                                        'Tugas telah disetujui & ditandai selesai!',
+                                      ),
                                       backgroundColor: AppColors.primaryDark,
                                       behavior: SnackBarBehavior.floating,
                                     ),
@@ -585,7 +851,10 @@ class _TasksScreenState extends State<TasksScreen> {
                                 },
                               );
                             },
-                            icon: const Icon(Icons.assignment_turned_in_outlined, size: 16),
+                            icon: const Icon(
+                              Icons.assignment_turned_in_outlined,
+                              size: 16,
+                            ),
                             label: const Text('Review & Persetujuan'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.primaryDark,
@@ -616,7 +885,9 @@ class _TasksScreenState extends State<TasksScreen> {
                     state.createTask(newTask);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Tugas "${newTask.title}" berhasil diterbitkan!'),
+                        content: Text(
+                          'Tugas "${newTask.title}" berhasil diterbitkan!',
+                        ),
                         backgroundColor: AppColors.primaryDark,
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -638,7 +909,12 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildStatusTab(String label, TaskStatus status, int count, {bool isBadge = false}) {
+  Widget _buildStatusTab(
+    String label,
+    TaskStatus? status,
+    int count, {
+    bool isBadge = false,
+  }) {
     final isActive = _selectedStatus == status;
 
     return Expanded(
@@ -646,7 +922,7 @@ class _TasksScreenState extends State<TasksScreen> {
         onTap: () => setState(() => _selectedStatus = status),
         borderRadius: BorderRadius.circular(10),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
           decoration: BoxDecoration(
             color: isActive ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
@@ -656,50 +932,82 @@ class _TasksScreenState extends State<TasksScreen> {
                       color: Colors.black.withOpacity(0.04),
                       blurRadius: 4,
                       offset: const Offset(0, 1),
-                    )
+                    ),
                   ]
                 : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                  color: isActive ? AppColors.textPrimary : AppColors.textSecondary,
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                    color: isActive
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ),
-              const SizedBox(width: 4),
-              if (isBadge)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                )
-              else
-                Text(
+              const SizedBox(width: 2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                decoration: BoxDecoration(
+                  color: isBadge
+                      ? AppColors.primary
+                      : AppColors.surfaceSecondary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
                   '$count',
-                  style: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    color: isBadge ? Colors.white : AppColors.textMuted,
                   ),
                 ),
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildActiveFilterChip(String label, VoidCallback onRemove) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 2, 4, 2),
+      decoration: BoxDecoration(
+        color: AppColors.primaryLight,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primaryBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primaryDark,
+            ),
+          ),
+          const SizedBox(width: 2),
+          InkWell(
+            onTap: onRemove,
+            borderRadius: BorderRadius.circular(10),
+            child: const Icon(
+              Icons.close_rounded,
+              size: 14,
+              color: AppColors.primaryDark,
+            ),
+          ),
+        ],
       ),
     );
   }

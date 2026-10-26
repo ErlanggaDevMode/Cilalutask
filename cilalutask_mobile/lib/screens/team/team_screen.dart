@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../state/app_state_controller.dart';
 import '../../state/app_state_scope.dart';
@@ -25,28 +27,32 @@ class TeamScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'KOLABORASI TIM',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: 0.8,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'KOLABORASI TIM',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Tim ${company.name}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Tim ${company.name}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -58,7 +64,12 @@ class TeamScreen extends StatelessWidget {
 
         // Admin Banner: Pending Join Requests
         if (state.isAdmin) ...[
-          _buildAdminJoinRequestsBanner(context, state, pendingCount, company.code),
+          _buildAdminJoinRequestsBanner(
+            context,
+            state,
+            pendingCount,
+            company.code,
+          ),
           const SizedBox(height: 14),
         ],
 
@@ -70,27 +81,40 @@ class TeamScreen extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              'Daftar Karyawan (${employees.length})',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            Expanded(
+              child: Text(
+                'Daftar Karyawan (${employees.length})',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
+            const SizedBox(width: 8),
             if (state.isAdmin)
               InkWell(
                 onTap: () => JoinRequestsBottomSheet.show(context),
                 child: Row(
                   children: [
-                    const Icon(Icons.manage_accounts_rounded, size: 14, color: AppColors.primary),
+                    const Icon(
+                      Icons.manage_accounts_rounded,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
                     const SizedBox(width: 4),
                     Text(
-                      pendingCount > 0 ? 'Permohonan ($pendingCount)' : 'Kelola Join',
+                      pendingCount > 0
+                          ? 'Permohonan ($pendingCount)'
+                          : 'Kelola Join',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: pendingCount > 0 ? Colors.amber.shade800 : AppColors.primary,
+                        color: pendingCount > 0
+                            ? Colors.amber.shade800
+                            : AppColors.primary,
                       ),
                     ),
                   ],
@@ -104,12 +128,18 @@ class TeamScreen extends StatelessWidget {
         if (employees.isEmpty)
           _buildEmptyTeamState(context, company.code)
         else
-          ...employees.map((emp) => _buildEmployeeCard(context, state, emp, employees)),
+          ...employees.map(
+            (emp) => _buildEmployeeCard(context, state, emp, employees),
+          ),
       ],
     );
   }
 
-  Widget _buildCompanyIdentityCard(BuildContext context, dynamic company, AppStateController state) {
+  Widget _buildCompanyIdentityCard(
+    BuildContext context,
+    dynamic company,
+    AppStateController state,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -135,7 +165,11 @@ class TeamScreen extends StatelessWidget {
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.business_rounded, color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.business_rounded,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -152,7 +186,10 @@ class TeamScreen extends StatelessWidget {
                     ),
                     Text(
                       company.industry,
-                      style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -164,29 +201,44 @@ class TeamScreen extends StatelessWidget {
           const SizedBox(height: 10),
 
           // Unique ID Banner with Copy button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text(
                     'ID Perusahaan: ',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: AppColors.border),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
-                    child: Text(
-                      company.code,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
-                        color: AppColors.primaryDark,
+                  ),
+                  Flexible(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceSecondary,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Text(
+                        company.code,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.8,
+                          color: AppColors.primaryDark,
+                        ),
                       ),
                     ),
                   ),
@@ -197,23 +249,40 @@ class TeamScreen extends StatelessWidget {
                   Clipboard.setData(ClipboardData(text: company.code));
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Kode Perusahaan ${company.code} berhasil disalin!'),
+                      content: Text(
+                        'Kode Perusahaan ${company.code} berhasil disalin!',
+                      ),
                       backgroundColor: AppColors.primary,
                       duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.copy_rounded, size: 12, color: AppColors.primary),
+                      Icon(
+                        Icons.copy_rounded,
+                        size: 12,
+                        color: AppColors.primary,
+                      ),
                       SizedBox(width: 4),
-                      Text('Salin Kode', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      Text(
+                        'Salin Kode',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -247,7 +316,11 @@ class TeamScreen extends StatelessWidget {
                 color: Colors.amber.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.person_add_rounded, color: Colors.amber.shade800, size: 20),
+              child: Icon(
+                Icons.person_add_rounded,
+                color: Colors.amber.shade800,
+                size: 20,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -256,12 +329,19 @@ class TeamScreen extends StatelessWidget {
                 children: [
                   Text(
                     '$pendingCount Permohonan Karyawan Baru!',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.amber.shade900,
+                    ),
                   ),
                   const SizedBox(height: 2),
                   const Text(
                     'Ada calon karyawan menunggu persetujuan Anda untuk bergabung.',
-                    style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -271,11 +351,19 @@ class TeamScreen extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.amber.shade800,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 visualDensity: VisualDensity.compact,
               ),
-              child: const Text('Review', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'Review',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
             ),
           ],
         ),
@@ -292,21 +380,40 @@ class TeamScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Row(
-            children: [
-              Icon(Icons.how_to_reg_outlined, size: 16, color: AppColors.textMuted),
-              SizedBox(width: 8),
-              Text(
-                'Permintaan Bergabung Karyawan',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-              ),
-            ],
+          const Expanded(
+            child: Row(
+              children: [
+                Icon(
+                  Icons.how_to_reg_outlined,
+                  size: 16,
+                  color: AppColors.textMuted,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Permintaan Bergabung Karyawan',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           InkWell(
             onTap: () => JoinRequestsBottomSheet.show(context),
             child: const Text(
               'Buka Riwayat',
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primary,
+              ),
             ),
           ),
         ],
@@ -354,7 +461,10 @@ class TeamScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 1,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(4),
@@ -373,19 +483,30 @@ class TeamScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   state.currentUserEmail,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 const SizedBox(height: 6),
                 Row(
                   children: [
-                    const Icon(Icons.verified_user_rounded, size: 13, color: AppColors.successDark),
+                    const Icon(
+                      Icons.verified_user_rounded,
+                      size: 13,
+                      color: AppColors.successDark,
+                    ),
                     const SizedBox(width: 4),
-                    Text(
-                      'Divisi: ${state.currentUserDivision}',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.successDark,
+                    Expanded(
+                      child: Text(
+                        'Divisi: ${state.currentUserDivision}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.successDark,
+                        ),
                       ),
                     ),
                   ],
@@ -399,57 +520,22 @@ class TeamScreen extends StatelessWidget {
   }
 
   Widget _buildEmptyTeamState(BuildContext context, String companyCode) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-      margin: const EdgeInsets.only(top: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSecondary,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.group_off_outlined, size: 40, color: AppColors.textMuted),
+    return AppEmptyState(
+      icon: Icons.group_off_outlined,
+      title: 'Belum Ada Karyawan Terdaftar',
+      description:
+          'Perusahaan ini beroperasi dalam mode blank. Bagikan Kode ID "$companyCode" kepada karyawan agar mereka dapat mendaftar dan menunggu persetujuan Anda.',
+      actionLabel: 'Salin Kode ID Perusahaan',
+      actionIcon: Icons.copy_rounded,
+      onAction: () {
+        Clipboard.setData(ClipboardData(text: companyCode));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Kode ID Perusahaan $companyCode berhasil disalin!'),
+            backgroundColor: AppColors.primary,
           ),
-          const SizedBox(height: 14),
-          const Text(
-            'Belum Ada Karyawan Terdaftar',
-            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            'Perusahaan ini beroperasi dalam mode blank. Bagikan Kode ID "$companyCode" kepada karyawan agar mereka dapat mendaftar dan menunggu persetujuan Anda.',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
-          ),
-          const SizedBox(height: 18),
-          ElevatedButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: companyCode));
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Kode ID Perusahaan $companyCode berhasil disalin!'),
-                  backgroundColor: AppColors.primary,
-                ),
-              );
-            },
-            icon: const Icon(Icons.share_rounded, size: 16),
-            label: const Text('Bagikan Kode ID Perusahaan'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -481,6 +567,8 @@ class TeamScreen extends StatelessWidget {
               children: [
                 Text(
                   emp.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.bold,
@@ -489,8 +577,13 @@ class TeamScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 RichText(
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   text: TextSpan(
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textSecondary,
+                    ),
                     children: [
                       TextSpan(text: '${emp.role} • '),
                       TextSpan(
@@ -536,7 +629,9 @@ class TeamScreen extends StatelessWidget {
                         state.createTask(newTask);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('Tugas "${newTask.title}" berhasil diterbitkan untuk ${emp.name}!'),
+                            content: Text(
+                              'Tugas "${newTask.title}" berhasil diterbitkan untuk ${emp.name}!',
+                            ),
                             backgroundColor: AppColors.primaryDark,
                             behavior: SnackBarBehavior.floating,
                           ),
@@ -548,10 +643,18 @@ class TeamScreen extends StatelessWidget {
                     backgroundColor: AppColors.primaryLight,
                     foregroundColor: AppColors.primary,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
-                  child: const Text('Beri Tugas', style: TextStyle(fontSize: 11)),
+                  child: const Text(
+                    'Beri Tugas',
+                    style: TextStyle(fontSize: 11),
+                  ),
                 ),
               ],
             ],

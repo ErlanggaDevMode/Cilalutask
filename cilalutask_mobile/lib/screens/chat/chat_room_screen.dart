@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../models/chat_model.dart';
@@ -9,11 +10,8 @@ class ChatRoomScreen extends StatefulWidget {
   final ChatChannel? channel;
   final Assignee? directUser;
 
-  const ChatRoomScreen({
-    super.key,
-    this.channel,
-    this.directUser,
-  }) : assert(channel != null || directUser != null);
+  const ChatRoomScreen({super.key, this.channel, this.directUser})
+    : assert(channel != null || directUser != null);
 
   @override
   State<ChatRoomScreen> createState() => _ChatRoomScreenState();
@@ -65,7 +63,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         : state.getDirectMessagesWith(widget.directUser!.id);
 
     final title = widget.channel?.name ?? widget.directUser!.name;
-    final subtitle = widget.channel?.description ?? '${widget.directUser!.role} • ${widget.directUser!.division}';
+    final subtitle =
+        widget.channel?.description ??
+        '${widget.directUser!.role} • ${widget.directUser!.division}';
 
     return Scaffold(
       backgroundColor: AppColors.scaffoldBg,
@@ -85,7 +85,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                   color: AppColors.primaryLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.tag_rounded, color: AppColors.primary, size: 20),
+                child: const Icon(
+                  Icons.tag_rounded,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               )
             else
               CustomAvatar(
@@ -123,7 +127,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline_rounded, size: 20, color: AppColors.textSecondary),
+            icon: const Icon(
+              Icons.info_outline_rounded,
+              size: 20,
+              color: AppColors.textSecondary,
+            ),
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -145,12 +153,20 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               color: AppColors.primaryLight.withValues(alpha: 0.6),
               child: Row(
                 children: [
-                  const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.primary),
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
                       widget.channel!.description,
-                      style: const TextStyle(fontSize: 11, color: AppColors.primaryDark, fontWeight: FontWeight.w500),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.primaryDark,
+                        fontWeight: FontWeight.w500,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -173,24 +189,37 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             color: AppColors.primaryLight,
                             borderRadius: BorderRadius.circular(16),
                           ),
-                          child: const Icon(Icons.chat_bubble_outline_rounded, color: AppColors.primary, size: 26),
+                          child: const Icon(
+                            Icons.chat_bubble_outline_rounded,
+                            color: AppColors.primary,
+                            size: 26,
+                          ),
                         ),
                         const SizedBox(height: 12),
                         Text(
                           'Mulai percakapan di $title',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         const Text(
                           'Sampaikan briefing, kendala, atau update operasional.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.textMuted,
+                          ),
                         ),
                       ],
                     ),
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
                     itemCount: conversationMessages.length,
                     itemBuilder: (context, index) {
                       final msg = conversationMessages[index];
@@ -200,7 +229,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.end,
-                          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+                          mainAxisAlignment: isMe
+                              ? MainAxisAlignment.end
+                              : MainAxisAlignment.start,
                           children: [
                             if (!isMe) ...[
                               CustomAvatar(
@@ -212,12 +243,16 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                             ],
                             Flexible(
                               child: Column(
-                                crossAxisAlignment:
-                                    isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                                crossAxisAlignment: isMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
                                 children: [
                                   if (!isMe)
                                     Padding(
-                                      padding: const EdgeInsets.only(left: 4, bottom: 3),
+                                      padding: const EdgeInsets.only(
+                                        left: 4,
+                                        bottom: 3,
+                                      ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
@@ -241,19 +276,32 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                       ),
                                     ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 10,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: isMe ? AppColors.primary : Colors.white,
+                                      color: isMe
+                                          ? AppColors.primary
+                                          : Colors.white,
                                       borderRadius: BorderRadius.only(
                                         topLeft: const Radius.circular(16),
                                         topRight: const Radius.circular(16),
-                                        bottomLeft: Radius.circular(isMe ? 16 : 4),
-                                        bottomRight: Radius.circular(isMe ? 4 : 16),
+                                        bottomLeft: Radius.circular(
+                                          isMe ? 16 : 4,
+                                        ),
+                                        bottomRight: Radius.circular(
+                                          isMe ? 4 : 16,
+                                        ),
                                       ),
-                                      border: isMe ? null : Border.all(color: AppColors.border),
+                                      border: isMe
+                                          ? null
+                                          : Border.all(color: AppColors.border),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.03),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.03,
+                                          ),
                                           blurRadius: 4,
                                           offset: const Offset(0, 2),
                                         ),
@@ -264,15 +312,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                                       style: TextStyle(
                                         fontSize: 13,
                                         height: 1.35,
-                                        color: isMe ? Colors.white : AppColors.textPrimary,
+                                        color: isMe
+                                            ? Colors.white
+                                            : AppColors.textPrimary,
                                       ),
                                     ),
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.only(top: 3, left: 4, right: 4),
+                                    padding: const EdgeInsets.only(
+                                      top: 3,
+                                      left: 4,
+                                      right: 4,
+                                    ),
                                     child: Text(
                                       msg.time,
-                                      style: const TextStyle(fontSize: 9, color: AppColors.textMuted),
+                                      style: const TextStyle(
+                                        fontSize: 9,
+                                        color: AppColors.textMuted,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -290,16 +347,18 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: const BoxDecoration(
               color: Colors.white,
-              border: Border(
-                top: BorderSide(color: AppColors.border),
-              ),
+              border: Border(top: BorderSide(color: AppColors.border)),
             ),
             child: SafeArea(
               top: false,
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.attach_file_rounded, color: AppColors.textMuted, size: 22),
+                    icon: const Icon(
+                      Icons.attach_file_rounded,
+                      color: AppColors.textMuted,
+                      size: 22,
+                    ),
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -327,7 +386,10 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
@@ -344,7 +406,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
                     ),
                   ),
                 ],

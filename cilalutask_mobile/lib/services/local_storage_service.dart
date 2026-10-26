@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/utils/data_parser.dart';
@@ -29,6 +30,7 @@ class LocalStorageService {
   static const String _prefixChannels = 'cilalu_channels_';
   static const String _prefixMessages = 'cilalu_messages_';
   static const String _prefixNotifs = 'cilalu_notifs_';
+  static const String _prefixPendingTasks = 'cilalu_pending_tasks_';
 
   SharedPreferences? _prefs;
 
@@ -148,7 +150,10 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<JoinRequest>(decoded, (m) => JoinRequest.fromMap(m));
+      return DataParser.parseList<JoinRequest>(
+        decoded,
+        (m) => JoinRequest.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
@@ -198,17 +203,26 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<SOPDocument>(decoded, (m) => SOPDocument.fromMap(m));
+      return DataParser.parseList<SOPDocument>(
+        decoded,
+        (m) => SOPDocument.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
   }
 
   // --- Employees per Company ---
-  Future<void> saveEmployees(String companyCode, List<Assignee> employees) async {
+  Future<void> saveEmployees(
+    String companyCode,
+    List<Assignee> employees,
+  ) async {
     await init();
     final jsonList = employees.map((e) => e.toMap()).toList();
-    await _prefs?.setString('$_prefixEmployees$companyCode', jsonEncode(jsonList));
+    await _prefs?.setString(
+      '$_prefixEmployees$companyCode',
+      jsonEncode(jsonList),
+    );
   }
 
   Future<void> deleteEmployee(String companyCode, String empId) async {
@@ -223,17 +237,26 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<Assignee>(decoded, (m) => Assignee.fromMap(m));
+      return DataParser.parseList<Assignee>(
+        decoded,
+        (m) => Assignee.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
   }
 
   // --- Channels per Company ---
-  Future<void> saveChannels(String companyCode, List<ChatChannel> channels) async {
+  Future<void> saveChannels(
+    String companyCode,
+    List<ChatChannel> channels,
+  ) async {
     await init();
     final jsonList = channels.map((c) => c.toMap()).toList();
-    await _prefs?.setString('$_prefixChannels$companyCode', jsonEncode(jsonList));
+    await _prefs?.setString(
+      '$_prefixChannels$companyCode',
+      jsonEncode(jsonList),
+    );
   }
 
   Future<List<ChatChannel>?> loadChannels(String companyCode) async {
@@ -242,17 +265,26 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<ChatChannel>(decoded, (m) => ChatChannel.fromMap(m));
+      return DataParser.parseList<ChatChannel>(
+        decoded,
+        (m) => ChatChannel.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
   }
 
   // --- Messages per Company ---
-  Future<void> saveMessages(String companyCode, List<ChatMessage> messages) async {
+  Future<void> saveMessages(
+    String companyCode,
+    List<ChatMessage> messages,
+  ) async {
     await init();
     final jsonList = messages.map((m) => m.toMap()).toList();
-    await _prefs?.setString('$_prefixMessages$companyCode', jsonEncode(jsonList));
+    await _prefs?.setString(
+      '$_prefixMessages$companyCode',
+      jsonEncode(jsonList),
+    );
   }
 
   Future<void> deleteMessage(String companyCode, String messageId) async {
@@ -267,14 +299,20 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<ChatMessage>(decoded, (m) => ChatMessage.fromMap(m));
+      return DataParser.parseList<ChatMessage>(
+        decoded,
+        (m) => ChatMessage.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
   }
 
   // --- Notifications per Company ---
-  Future<void> saveNotifications(String companyCode, List<NotificationItem> notifs) async {
+  Future<void> saveNotifications(
+    String companyCode,
+    List<NotificationItem> notifs,
+  ) async {
     await init();
     final jsonList = notifs.map((n) => n.toMap()).toList();
     await _prefs?.setString('$_prefixNotifs$companyCode', jsonEncode(jsonList));
@@ -292,10 +330,57 @@ class LocalStorageService {
     if (raw == null || raw.isEmpty) return null;
     try {
       final decoded = jsonDecode(raw);
-      return DataParser.parseList<NotificationItem>(decoded, (m) => NotificationItem.fromMap(m));
+      return DataParser.parseList<NotificationItem>(
+        decoded,
+        (m) => NotificationItem.fromMap(m),
+      );
     } catch (_) {
       return null;
     }
+  }
+
+  // --- Offline Pending Writes Queue ---
+  Future<void> savePendingTask(String companyCode, Task task) async {
+    await init();
+    final existing = await loadPendingTasks(companyCode);
+    final updated = [task, ...existing.where((t) => t.id != task.id)];
+    final jsonList = updated.map((t) => t.toMap()).toList();
+    await _prefs?.setString(
+      '$_prefixPendingTasks$companyCode',
+      jsonEncode(jsonList),
+    );
+  }
+
+  Future<List<Task>> loadPendingTasks(String companyCode) async {
+    await init();
+    final raw = _prefs?.getString('$_prefixPendingTasks$companyCode');
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw);
+      return DataParser.parseList<Task>(decoded, (m) => Task.fromMap(m));
+    } catch (_) {
+      return [];
+    }
+  }
+
+  Future<void> removePendingTask(String companyCode, String taskId) async {
+    await init();
+    final existing = await loadPendingTasks(companyCode);
+    final updated = existing.where((t) => t.id != taskId).toList();
+    if (updated.isEmpty) {
+      await _prefs?.remove('$_prefixPendingTasks$companyCode');
+    } else {
+      final jsonList = updated.map((t) => t.toMap()).toList();
+      await _prefs?.setString(
+        '$_prefixPendingTasks$companyCode',
+        jsonEncode(jsonList),
+      );
+    }
+  }
+
+  Future<void> clearPendingTasks(String companyCode) async {
+    await init();
+    await _prefs?.remove('$_prefixPendingTasks$companyCode');
   }
 
   // --- Reset Cache per Company ---
@@ -307,6 +392,7 @@ class LocalStorageService {
     await _prefs?.remove('$_prefixChannels$companyCode');
     await _prefs?.remove('$_prefixMessages$companyCode');
     await _prefs?.remove('$_prefixNotifs$companyCode');
+    await _prefs?.remove('$_prefixPendingTasks$companyCode');
   }
 
   // --- Reset All (Factory Reset) ---

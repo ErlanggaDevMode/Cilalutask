@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/utils/task_metrics_calculator.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
-import '../../models/task.dart';
 import '../../state/app_state_scope.dart';
 import '../../widgets/modals/create_task_bottom_sheet.dart';
 import '../../widgets/modals/upload_sop_bottom_sheet.dart';
@@ -20,17 +20,11 @@ class HomeScreen extends StatelessWidget {
     final tasks = state.tasks;
     final activities = state.activities;
 
-    final isBlank = state.isBlankMode;
-    final activeCount = tasks
-        .where((t) => t.status == TaskStatus.inProgress)
-        .length;
-    final completedCount = isBlank
-        ? tasks.where((t) => t.status == TaskStatus.completed).length
-        : (tasks.where((t) => t.status == TaskStatus.completed).length + 40);
-    final reviewCount = isBlank
-        ? state.activeReviewCount
-        : (state.activeReviewCount > 0 ? state.activeReviewCount : 7);
-    final nearDeadlineCount = tasks.where((t) => t.isUrgentDeadline).length;
+    final metrics = TaskMetricsCalculator.computeMetrics(tasks);
+    final activeCount = metrics.inProgress;
+    final completedCount = metrics.completed;
+    final reviewCount = metrics.needsReview;
+    final nearDeadlineCount = metrics.urgentOrNearDeadline;
 
     final approachingTasks = tasks
         .where(
@@ -167,10 +161,14 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 10),
 
               // Footer: Efisiensi Tim & Lihat Performa
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 6,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.verified_user_rounded,
@@ -191,6 +189,7 @@ class HomeScreen extends StatelessWidget {
                   InkWell(
                     onTap: () => state.setTab(3),
                     child: const Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           'Lihat Performa',
@@ -468,7 +467,9 @@ class HomeScreen extends StatelessWidget {
             _buildMetricCard(
               title: 'Selesai',
               count: '$completedCount',
-              subtext: '↑ +18% vs lalu',
+              subtext: metrics.total > 0
+                  ? '${metrics.completionRate}% selesai'
+                  : '0 tugas',
               subtextColor: AppColors.successDark,
               icon: Icons.check_circle_outline_rounded,
               iconBg: AppColors.successLight,

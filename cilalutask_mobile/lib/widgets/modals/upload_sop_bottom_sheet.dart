@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../models/sop.dart';
 
 class UploadSopBottomSheet extends StatefulWidget {
   final void Function(SOPDocument newSop) onAddSop;
 
-  const UploadSopBottomSheet({
-    super.key,
-    required this.onAddSop,
-  });
+  const UploadSopBottomSheet({super.key, required this.onAddSop});
 
   static Future<void> show(
     BuildContext context, {
@@ -43,6 +41,7 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
 
   String _category = 'Operasional Gudang';
   bool _isUrgentMandatory = false;
+  bool _isSubmitting = false;
 
   final List<String> _categories = [
     'Operasional Gudang',
@@ -61,43 +60,51 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
     super.dispose();
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
     if (_formKey.currentState?.validate() ?? false) {
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final newDoc = SOPDocument(
-        id: 'sop-$now',
-        code: _codeController.text.trim().isNotEmpty
-            ? _codeController.text.trim()
-            : 'SOP-2025-OPS-${now.toString().substring(8)}',
-        title: _titleController.text.trim(),
-        category: _category,
-        version: _versionController.text.trim().isNotEmpty ? _versionController.text.trim() : 'v1.0',
-        description: _descController.text.trim().isNotEmpty
-            ? _descController.text.trim()
-            : 'Pedoman operasional standar terbitan baru.',
-        lastUpdatedText: 'Baru saja diunggah',
-        fileInfo: 'Dokumen Digital Terbitan Internal',
-        isUrgentMandatory: _isUrgentMandatory,
-        isNewUpdate: true,
-        readProgressPercent: 0,
-        readTeamCount: '0/34 Tim',
-        complianceRatioText: '0% Karyawan terverifikasi',
-        contentSections: [
-          ContentSection(
-            heading: 'Prosedur Pelaksanaan Standar',
-            items: [
-              _descController.text.trim().isNotEmpty
-                  ? _descController.text.trim()
-                  : 'Melakukan instruksi operasional sesuai standar ISO dan K3.',
-              'Melaporkan penyelesaian tugas kepada supervisor terkait.',
-            ],
-          ),
-        ],
-        isReadByMe: true,
-      );
+      setState(() => _isSubmitting = true);
+      try {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final newDoc = SOPDocument(
+          id: 'sop-$now',
+          code: _codeController.text.trim().isNotEmpty
+              ? _codeController.text.trim()
+              : 'SOP-2025-OPS-${now.toString().substring(8)}',
+          title: _titleController.text.trim(),
+          category: _category,
+          version: _versionController.text.trim().isNotEmpty
+              ? _versionController.text.trim()
+              : 'v1.0',
+          description: _descController.text.trim().isNotEmpty
+              ? _descController.text.trim()
+              : 'Pedoman operasional standar terbitan baru.',
+          lastUpdatedText: 'Baru saja diunggah',
+          fileInfo: 'Dokumen Digital Terbitan Internal',
+          isUrgentMandatory: _isUrgentMandatory,
+          isNewUpdate: true,
+          readProgressPercent: 0,
+          readTeamCount: '0/34 Tim',
+          complianceRatioText: '0% Karyawan terverifikasi',
+          contentSections: [
+            ContentSection(
+              heading: 'Prosedur Pelaksanaan Standar',
+              items: [
+                _descController.text.trim().isNotEmpty
+                    ? _descController.text.trim()
+                    : 'Melakukan instruksi operasional sesuai standar ISO dan K3.',
+                'Melaporkan penyelesaian tugas kepada supervisor terkait.',
+              ],
+            ),
+          ],
+          isReadByMe: true,
+        );
 
-      widget.onAddSop(newDoc);
-      Navigator.of(context).pop();
+        widget.onAddSop(newDoc);
+        if (mounted) Navigator.of(context).pop();
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -126,7 +133,11 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.upload_file_rounded, size: 18, color: AppColors.primary),
+                const Icon(
+                  Icons.upload_file_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Unggah SOP Baru',
@@ -138,7 +149,11 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -170,8 +185,9 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
                     decoration: const InputDecoration(
                       hintText: 'Contoh: Prosedur Pengamanan Data Nasabah',
                     ),
-                    validator: (val) =>
-                        (val == null || val.trim().isEmpty) ? 'Judul SOP wajib diisi' : null,
+                    validator: (val) => (val == null || val.trim().isEmpty)
+                        ? 'Judul SOP wajib diisi'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -237,9 +253,15 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
                   const SizedBox(height: 6),
                   DropdownButtonFormField<String>(
                     value: _category,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textPrimary,
+                    ),
                     items: _categories
-                        .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                        .map(
+                          (cat) =>
+                              DropdownMenuItem(value: cat, child: Text(cat)),
+                        )
                         .toList(),
                     onChanged: (val) {
                       if (val != null) setState(() => _category = val);
@@ -269,7 +291,10 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
 
                   // Urgent mandatory switch
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.dangerLight.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(12),
@@ -303,7 +328,8 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
                         Switch(
                           value: _isUrgentMandatory,
                           activeColor: AppColors.danger,
-                          onChanged: (val) => setState(() => _isUrgentMandatory = val),
+                          onChanged: (val) =>
+                              setState(() => _isUrgentMandatory = val),
                         ),
                       ],
                     ),
@@ -315,18 +341,27 @@ class _UploadSopBottomSheetState extends State<UploadSopBottomSheet> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: _submit,
+                      onPressed: _isSubmitting ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                       ),
-                      child: const Text(
-                        'Terbitkan Dokumen SOP',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Terbitkan Dokumen SOP',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),

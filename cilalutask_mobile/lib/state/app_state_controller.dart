@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/task.dart';
@@ -47,6 +48,14 @@ class AppStateController extends ChangeNotifier {
   bool _isLoadingCompanyData = false;
   bool get isLoadingCompanyData => _isLoadingCompanyData;
 
+  Future<int> reconcilePendingWrites() async {
+    final count = await _repository.reconcilePendingWrites(
+      _companyController.currentCompany.code,
+    );
+    if (count > 0) notifyListeners();
+    return count;
+  }
+
   AuthService get authService => _authService;
   CilaluRepository get repository => _repository;
 
@@ -77,9 +86,10 @@ class AppStateController extends ChangeNotifier {
     SopController? sopController,
     ChatController? chatController,
     NotificationController? notificationController,
-  })  : _repository = repository ?? CilaluRepository(),
-        _authService = authService ?? AuthService() {
-    _companyController = companyController ??
+  }) : _repository = repository ?? CilaluRepository(),
+       _authService = authService ?? AuthService() {
+    _companyController =
+        companyController ??
         CompanyController(
           repository: _repository,
           authService: _authService,
@@ -87,25 +97,15 @@ class AppStateController extends ChangeNotifier {
               pushNotification(item, showBanner: showBanner),
         );
 
-    _taskController = taskController ??
-        TaskController(
-          repository: _repository,
-        );
+    _taskController = taskController ?? TaskController(repository: _repository);
 
-    _sopController = sopController ??
-        SopController(
-          repository: _repository,
-        );
+    _sopController = sopController ?? SopController(repository: _repository);
 
-    _chatController = chatController ??
-        ChatController(
-          repository: _repository,
-        );
+    _chatController = chatController ?? ChatController(repository: _repository);
 
-    _notificationController = notificationController ??
-        NotificationController(
-          repository: _repository,
-        );
+    _notificationController =
+        notificationController ??
+        NotificationController(repository: _repository);
 
     // Forward change notifications to root listeners
     _companyController.addListener(_onSubControllerChanged);
@@ -137,13 +137,19 @@ class AppStateController extends ChangeNotifier {
     final savedEmpId = session['employeeId'] as String?;
 
     // 3. Load Company Data sequentially
-    await _loadCompanyData(_companyController.currentCompany.code, savedEmpId: savedEmpId);
+    await _loadCompanyData(
+      _companyController.currentCompany.code,
+      savedEmpId: savedEmpId,
+    );
 
     _isStorageLoaded = true;
     notifyListeners();
   }
 
-  Future<void> _loadCompanyData(String companyCode, {String? savedEmpId}) async {
+  Future<void> _loadCompanyData(
+    String companyCode, {
+    String? savedEmpId,
+  }) async {
     _isLoadingCompanyData = true;
     _cancelSubscriptions();
 
@@ -221,12 +227,15 @@ class AppStateController extends ChangeNotifier {
       ? _companyController.currentCompany.adminEmail
       : (_currentEmployee?.email ?? _currentUser.email);
 
-  String get currentUserRoleTitle =>
-      isAdmin ? 'Admin / Manager' : (_currentEmployee?.role ?? _currentUser.role);
+  String get currentUserRoleTitle => isAdmin
+      ? 'Admin / Manager'
+      : (_currentEmployee?.role ?? _currentUser.role);
 
-  String get currentUserAvatar => _customUserAvatar ?? (isAdmin
-      ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
-      : (_currentEmployee?.avatar ?? _currentUser.avatar));
+  String get currentUserAvatar =>
+      _customUserAvatar ??
+      (isAdmin
+          ? 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256'
+          : (_currentEmployee?.avatar ?? _currentUser.avatar));
 
   String get currentUserDivision => _currentUserRole == UserRole.admin
       ? _currentUser.division
@@ -252,9 +261,9 @@ class AppStateController extends ChangeNotifier {
     final cleanEmail = email.trim();
 
     // 1. Verify Company Existence
-    final foundCompany = _companyController.companies.where(
-      (c) => c.code.toUpperCase() == cleanCode,
-    ).firstOrNull;
+    final foundCompany = _companyController.companies
+        .where((c) => c.code.toUpperCase() == cleanCode)
+        .firstOrNull;
 
     if (foundCompany == null) {
       throw Exception('ID Perusahaan "$cleanCode" tidak ditemukan.');
@@ -263,16 +272,22 @@ class AppStateController extends ChangeNotifier {
     // 2. Authenticate with Firebase Auth if available
     String uid = 'uid-${cleanEmail.hashCode}';
     if (_authService.isAvailable) {
-      final cred = await _authService.signIn(email: cleanEmail, password: password);
+      final cred = await _authService.signIn(
+        email: cleanEmail,
+        password: password,
+      );
       uid = cred.user?.uid ?? uid;
     }
 
     // 3. Verify Membership and Role Authorization
     if (role == UserRole.admin) {
-      final isAdmin = foundCompany.adminEmail.toLowerCase() == cleanEmail.toLowerCase() ||
+      final isAdmin =
+          foundCompany.adminEmail.toLowerCase() == cleanEmail.toLowerCase() ||
           (foundCompany.adminUid.isNotEmpty && foundCompany.adminUid == uid);
       if (!isAdmin) {
-        throw Exception('Akun ini tidak memiliki hak akses sebagai Administrator di $cleanCode.');
+        throw Exception(
+          'Akun ini tidak memiliki hak akses sebagai Administrator di $cleanCode.',
+        );
       }
       _companyController.setCurrentCompany(foundCompany);
       _currentUserRole = UserRole.admin;
@@ -282,10 +297,17 @@ class AppStateController extends ChangeNotifier {
         _companyController.setCurrentCompany(foundCompany);
       }
       await _loadCompanyData(foundCompany.code);
-      final emp = _companyController.employees.where((e) =>
-          e.email.toLowerCase() == cleanEmail.toLowerCase() || e.id == uid).firstOrNull;
+      final emp = _companyController.employees
+          .where(
+            (e) =>
+                e.email.toLowerCase() == cleanEmail.toLowerCase() ||
+                e.id == uid,
+          )
+          .firstOrNull;
       if (emp == null) {
-        throw Exception('Akun Anda belum terdaftar sebagai anggota di $cleanCode. Silakan ajukan melalui "Gabung Tim".');
+        throw Exception(
+          'Akun Anda belum terdaftar sebagai anggota di $cleanCode. Silakan ajukan melalui "Gabung Tim".',
+        );
       }
       _currentUserRole = UserRole.user;
       _currentEmployee = emp;
@@ -354,8 +376,10 @@ class AppStateController extends ChangeNotifier {
   List<Company> get companies => _companyController.companies;
   Company get currentCompany => _companyController.currentCompany;
   List<JoinRequest> get joinRequests => _companyController.joinRequests;
-  List<JoinRequest> get pendingJoinRequests => _companyController.pendingJoinRequests;
-  int get pendingJoinRequestsCount => _companyController.pendingJoinRequestsCount;
+  List<JoinRequest> get pendingJoinRequests =>
+      _companyController.pendingJoinRequests;
+  int get pendingJoinRequestsCount =>
+      _companyController.pendingJoinRequestsCount;
   bool get isBlankMode => _companyController.isBlankMode;
   List<Assignee> get employees => _companyController.employees;
 
@@ -403,7 +427,8 @@ class AppStateController extends ChangeNotifier {
         id: 'ch-umum',
         name: '#umum',
         description: 'Saluran pengumuman dan diskusi ${newComp.name}',
-        lastMessage: 'Selamat datang di ${newComp.name}! Bagikan Kode ID ${newComp.code} untuk mengundang tim.',
+        lastMessage:
+            'Selamat datang di ${newComp.name}! Bagikan Kode ID ${newComp.code} untuk mengundang tim.',
         lastMessageTime: 'Baru saja',
         unreadCount: 0,
       ),
@@ -471,7 +496,8 @@ class AppStateController extends ChangeNotifier {
       NotificationItem(
         id: 'notif-task-${DateTime.now().millisecondsSinceEpoch}',
         title: '📋 Tugas Baru Diterbitkan',
-        description: 'Tugas "${newTask.title}" telah ditugaskan untuk ${newTask.assignee.name}.',
+        description:
+            'Tugas "${newTask.title}" telah ditugaskan untuk ${newTask.assignee.name}.',
         time: 'Baru saja',
         type: 'task',
         targetTab: 1,
@@ -481,15 +507,25 @@ class AppStateController extends ChangeNotifier {
       showBanner: true,
     );
 
-    await _taskController.createTask(_companyController.currentCompany.code, newTask);
+    await _taskController.createTask(
+      _companyController.currentCompany.code,
+      newTask,
+    );
   }
 
   Future<void> deleteTask(String taskId) async {
     if (!isAdmin) return;
-    await _taskController.deleteTask(_companyController.currentCompany.code, taskId);
+    await _taskController.deleteTask(
+      _companyController.currentCompany.code,
+      taskId,
+    );
   }
 
-  Future<void> saveProgress(String taskId, List<Subtask> updatedSubtasks, int progressPercent) async {
+  Future<void> saveProgress(
+    String taskId,
+    List<Subtask> updatedSubtasks,
+    int progressPercent,
+  ) async {
     final updated = await _taskController.saveProgress(
       _companyController.currentCompany.code,
       taskId,
@@ -515,7 +551,8 @@ class AppStateController extends ChangeNotifier {
         NotificationItem(
           id: 'notif-prog-${DateTime.now().millisecondsSinceEpoch}',
           title: '📈 Progres Tugas Diperbarui ($progressPercent%)',
-          description: '$currentUserName memperbarui "${updated.title}" ke $progressPercent%.',
+          description:
+              '$currentUserName memperbarui "${updated.title}" ke $progressPercent%.',
           time: 'Baru saja',
           type: 'task',
           targetTab: 1,
@@ -552,7 +589,8 @@ class AppStateController extends ChangeNotifier {
         NotificationItem(
           id: 'notif-appr-${DateTime.now().millisecondsSinceEpoch}',
           title: '✅ Tugas Telah Disetujui & Selesai',
-          description: '$currentUserName telah menyetujui tugas "${approved.title}".',
+          description:
+              '$currentUserName telah menyetujui tugas "${approved.title}".',
           time: 'Baru saja',
           type: 'review',
           targetTab: 1,
@@ -604,11 +642,17 @@ class AppStateController extends ChangeNotifier {
 
   Future<void> deleteSop(String sopId) async {
     if (!isAdmin) return;
-    await _sopController.deleteSop(_companyController.currentCompany.code, sopId);
+    await _sopController.deleteSop(
+      _companyController.currentCompany.code,
+      sopId,
+    );
   }
 
   Future<void> confirmReadSop(String sopId) async {
-    await _sopController.confirmReadSop(_companyController.currentCompany.code, sopId);
+    await _sopController.confirmReadSop(
+      _companyController.currentCompany.code,
+      sopId,
+    );
     final sop = _sopController.sops.firstWhere(
       (s) => s.id == sopId,
       orElse: () => _sopController.sops.first,
@@ -628,7 +672,10 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> toggleBookmarkSop(String sopId) async {
-    await _sopController.toggleBookmarkSop(_companyController.currentCompany.code, sopId);
+    await _sopController.toggleBookmarkSop(
+      _companyController.currentCompany.code,
+      sopId,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -643,7 +690,9 @@ class AppStateController extends ChangeNotifier {
   }
 
   List<ChatMessage> getDirectMessagesWith(String otherUserId) {
-    final myId = _currentUserRole == UserRole.admin ? 'admin-1' : (_currentEmployee?.id ?? 'emp-1');
+    final myId = _currentUserRole == UserRole.admin
+        ? 'admin-1'
+        : (_currentEmployee?.id ?? 'emp-1');
     return _chatController.getDirectMessagesWith(otherUserId, myId);
   }
 
@@ -652,7 +701,11 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> addChannel(String name, String description) async {
-    await _chatController.addChannel(_companyController.currentCompany.code, name, description);
+    await _chatController.addChannel(
+      _companyController.currentCompany.code,
+      name,
+      description,
+    );
   }
 
   Future<void> sendChatMessage({
@@ -663,8 +716,11 @@ class AppStateController extends ChangeNotifier {
     if (content.trim().isEmpty) return;
 
     final now = DateTime.now();
-    final timeFormatted = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    final myId = _currentUserRole == UserRole.admin ? 'admin-1' : (_currentEmployee?.id ?? 'emp-1');
+    final timeFormatted =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final myId = _currentUserRole == UserRole.admin
+        ? 'admin-1'
+        : (_currentEmployee?.id ?? 'emp-1');
 
     final newMsg = ChatMessage(
       id: 'msg-${now.millisecondsSinceEpoch}',
@@ -679,10 +735,18 @@ class AppStateController extends ChangeNotifier {
       timestamp: now,
     );
 
-    await _chatController.sendChatMessage(_companyController.currentCompany.code, newMsg);
+    await _chatController.sendChatMessage(
+      _companyController.currentCompany.code,
+      newMsg,
+    );
 
     final channelName = channelId != null
-        ? (_chatController.channels.firstWhere((c) => c.id == channelId, orElse: () => _chatController.channels.first).name)
+        ? (_chatController.channels
+              .firstWhere(
+                (c) => c.id == channelId,
+                orElse: () => _chatController.channels.first,
+              )
+              .name)
         : 'Pesan Langsung';
 
     pushNotification(
@@ -703,16 +767,22 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> deleteChatMessage(String messageId) async {
-    await _chatController.deleteChatMessage(_companyController.currentCompany.code, messageId);
+    await _chatController.deleteChatMessage(
+      _companyController.currentCompany.code,
+      messageId,
+    );
   }
 
   // ─────────────────────────────────────────────────────────────
   //  NOTIFICATIONS & BROADCASTS (Delegation to NotificationController)
   // ─────────────────────────────────────────────────────────────
 
-  List<NotificationItem> get notifications => _notificationController.notifications;
-  int get unreadNotificationsCount => _notificationController.unreadNotificationsCount;
-  NotificationItem? get activeInAppNotification => _notificationController.activeInAppNotification;
+  List<NotificationItem> get notifications =>
+      _notificationController.notifications;
+  int get unreadNotificationsCount =>
+      _notificationController.unreadNotificationsCount;
+  NotificationItem? get activeInAppNotification =>
+      _notificationController.activeInAppNotification;
 
   void pushNotification(NotificationItem item, {bool showBanner = true}) {
     _notificationController.pushNotification(
@@ -735,17 +805,24 @@ class AppStateController extends ChangeNotifier {
   }
 
   Future<void> deleteNotification(String notifId) async {
-    await _notificationController.deleteNotification(_companyController.currentCompany.code, notifId);
+    await _notificationController.deleteNotification(
+      _companyController.currentCompany.code,
+      notifId,
+    );
   }
 
   Future<void> clearAllNotifications() async {
-    await _notificationController.clearAllNotifications(_companyController.currentCompany.code);
+    await _notificationController.clearAllNotifications(
+      _companyController.currentCompany.code,
+    );
   }
 
   void sendBroadcast(String message, String targetDivision) {
     if (!isAdmin) return;
 
-    final preview = message.length > 35 ? '${message.substring(0, 35)}...' : message;
+    final preview = message.length > 35
+        ? '${message.substring(0, 35)}...'
+        : message;
     final newActivity = ActivityItem(
       id: 'act-${DateTime.now().millisecondsSinceEpoch}',
       userName: currentUserName,
@@ -822,7 +899,8 @@ class AppStateController extends ChangeNotifier {
   int _simIndex = 0;
   void simulateIncomingRealtimeEvent() {
     final now = DateTime.now();
-    final timeStr = '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final timeStr =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
     final events = [
       NotificationItem(
@@ -840,7 +918,8 @@ class AppStateController extends ChangeNotifier {
       NotificationItem(
         id: 'sim-${now.millisecondsSinceEpoch}-2',
         title: '📋 Update Subtask Operasional',
-        description: 'Budi Santoso telah menyelesaikan checklist Pallet B4 di Cikarang.',
+        description:
+            'Budi Santoso telah menyelesaikan checklist Pallet B4 di Cikarang.',
         time: 'Baru saja ($timeStr)',
         type: 'task',
         senderName: 'Budi Santoso',

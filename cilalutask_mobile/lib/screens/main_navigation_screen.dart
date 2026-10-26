@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../core/theme/app_colors.dart';
 import '../core/widgets/custom_avatar.dart';
 import '../core/widgets/in_app_notification_banner.dart';
@@ -144,58 +145,73 @@ class MainNavigationScreen extends StatelessWidget {
                   const SizedBox(width: 10),
 
                   // Brand Text & Subtitle & Role Badge
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            'CILALUTASK',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
-                              letterSpacing: 0.5,
-                              height: 1.1,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: state.isAdmin ? AppColors.primaryLight : AppColors.successLight,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              state.isAdmin ? 'ADMIN' : 'USER',
-                              style: TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.bold,
-                                color: state.isAdmin ? AppColors.primary : AppColors.successDark,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              const Text(
+                                'CILALUTASK',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColors.primaryDark,
+                                  letterSpacing: 0.5,
+                                  height: 1.1,
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: state.isAdmin
+                                      ? AppColors.primaryLight
+                                      : AppColors.successLight,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  state.isAdmin ? 'ADMIN' : 'USER',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.bold,
+                                    color: state.isAdmin
+                                        ? AppColors.primary
+                                        : AppColors.successDark,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              _buildSyncBadge(state.syncStatus),
+                            ],
                           ),
-                          const SizedBox(width: 4),
-                          _buildSyncBadge(state.syncStatus),
-                        ],
-                      ),
-                      Text(
-                        _getSubTitle(currentTab),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textMuted,
-                          height: 1.1,
                         ),
-                      ),
-                    ],
+                        Text(
+                          _getSubTitle(currentTab),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textMuted,
+                            height: 1.1,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
 
                   // Notification Bell (opens real-time notification sheet)
                   IconButton(
-                    onPressed: () => NotificationCenterBottomSheet.show(context),
+                    onPressed: () =>
+                        NotificationCenterBottomSheet.show(context),
                     icon: Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -214,7 +230,10 @@ class MainNavigationScreen extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: AppColors.danger,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -234,7 +253,9 @@ class MainNavigationScreen extends StatelessWidget {
                       imageUrl: state.currentUserAvatar,
                       fallbackText: state.currentUserName,
                       radius: 16,
-                      borderColor: state.isAdmin ? AppColors.primaryBorder : AppColors.success,
+                      borderColor: state.isAdmin
+                          ? AppColors.primaryBorder
+                          : AppColors.success,
                     ),
                   ),
                 ],
@@ -245,10 +266,7 @@ class MainNavigationScreen extends StatelessWidget {
       ),
       body: Stack(
         children: [
-          IndexedStack(
-            index: currentTab,
-            children: screens,
-          ),
+          IndexedStack(index: currentTab, children: screens),
           if (state.isLoadingCompanyData)
             const Positioned(
               top: 0,
@@ -282,7 +300,9 @@ class MainNavigationScreen extends StatelessWidget {
           child: NavigationBarTheme(
             data: NavigationBarThemeData(
               indicatorColor: AppColors.primaryLight,
-              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
+              labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((
+                states,
+              ) {
                 if (states.contains(WidgetState.selected)) {
                   return const TextStyle(
                     fontSize: 10,
@@ -306,7 +326,10 @@ class MainNavigationScreen extends StatelessWidget {
               destinations: [
                 const NavigationDestination(
                   icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded, color: AppColors.primary),
+                  selectedIcon: Icon(
+                    Icons.home_rounded,
+                    color: AppColors.primary,
+                  ),
                   label: 'Beranda',
                 ),
                 NavigationDestination(
@@ -320,28 +343,43 @@ class MainNavigationScreen extends StatelessWidget {
                     label: Text('$activeReviewCount'),
                     isLabelVisible: activeReviewCount > 0,
                     backgroundColor: AppColors.primary,
-                    child: const Icon(Icons.assignment_rounded, color: AppColors.primary),
+                    child: const Icon(
+                      Icons.assignment_rounded,
+                      color: AppColors.primary,
+                    ),
                   ),
                   label: 'Tugas',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.menu_book_outlined),
-                  selectedIcon: Icon(Icons.menu_book_rounded, color: AppColors.primary),
+                  selectedIcon: Icon(
+                    Icons.menu_book_rounded,
+                    color: AppColors.primary,
+                  ),
                   label: 'SOP',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.bar_chart_outlined),
-                  selectedIcon: Icon(Icons.bar_chart_rounded, color: AppColors.primary),
+                  selectedIcon: Icon(
+                    Icons.bar_chart_rounded,
+                    color: AppColors.primary,
+                  ),
                   label: 'Laporan',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.chat_bubble_outline_rounded),
-                  selectedIcon: Icon(Icons.chat_bubble_rounded, color: AppColors.primary),
+                  selectedIcon: Icon(
+                    Icons.chat_bubble_rounded,
+                    color: AppColors.primary,
+                  ),
                   label: 'Chat',
                 ),
                 const NavigationDestination(
                   icon: Icon(Icons.group_outlined),
-                  selectedIcon: Icon(Icons.group_rounded, color: AppColors.primary),
+                  selectedIcon: Icon(
+                    Icons.group_rounded,
+                    color: AppColors.primary,
+                  ),
                   label: 'Tim',
                 ),
               ],

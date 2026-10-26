@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 
 class ExportReportBottomSheet extends StatefulWidget {
-  const ExportReportBottomSheet({super.key});
+  final String? period;
 
-  static Future<void> show(BuildContext context) {
+  const ExportReportBottomSheet({super.key, this.period});
+
+  static Future<void> show(BuildContext context, {String? period}) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -12,12 +15,13 @@ class ExportReportBottomSheet extends StatefulWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const ExportReportBottomSheet(),
+      builder: (context) => ExportReportBottomSheet(period: period),
     );
   }
 
   @override
-  State<ExportReportBottomSheet> createState() => _ExportReportBottomSheetState();
+  State<ExportReportBottomSheet> createState() =>
+      _ExportReportBottomSheetState();
 }
 
 class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
@@ -67,7 +71,11 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
           // Header
           Row(
             children: [
-              const Icon(Icons.download_rounded, color: AppColors.primary, size: 20),
+              const Icon(
+                Icons.download_rounded,
+                color: AppColors.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Text(
                 'Ekspor Laporan Kinerja',
@@ -79,7 +87,11 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
@@ -88,9 +100,9 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
           const Divider(height: 1, color: AppColors.border),
           const SizedBox(height: 14),
 
-          const Text(
-            'Unduh rekapitulasi data tingkat penyelesaian tugas, SLA divisi, dan skor karyawan untuk periode Mei 2025.',
-            style: TextStyle(
+          Text(
+            'Unduh rekapitulasi data tingkat penyelesaian tugas, SLA divisi, dan skor karyawan untuk ${widget.period ?? 'periode berjalan'}.',
+            style: const TextStyle(
               fontSize: 13,
               color: AppColors.textSecondary,
               height: 1.4,
@@ -111,11 +123,26 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
           // 3 Format Cards
           Row(
             children: [
-              _buildFormatCard('pdf', 'PDF Eksekutif', Icons.picture_as_pdf_rounded, AppColors.danger),
+              _buildFormatCard(
+                'pdf',
+                'PDF Eksekutif',
+                Icons.picture_as_pdf_rounded,
+                AppColors.danger,
+              ),
               const SizedBox(width: 8),
-              _buildFormatCard('xlsx', 'Excel XLSX', Icons.table_chart_rounded, AppColors.success),
+              _buildFormatCard(
+                'xlsx',
+                'Excel XLSX',
+                Icons.table_chart_rounded,
+                AppColors.success,
+              ),
               const SizedBox(width: 8),
-              _buildFormatCard('csv', 'CSV Data', Icons.description_outlined, AppColors.primary),
+              _buildFormatCard(
+                'csv',
+                'CSV Data',
+                Icons.description_outlined,
+                AppColors.primary,
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -137,7 +164,10 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
                       ? const SizedBox(
                           width: 14,
                           height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : const Icon(Icons.download_rounded, size: 16),
                   label: Text(
@@ -157,7 +187,12 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
     );
   }
 
-  Widget _buildFormatCard(String id, String label, IconData icon, Color iconColor) {
+  Widget _buildFormatCard(
+    String id,
+    String label,
+    IconData icon,
+    Color iconColor,
+  ) {
     final isSelected = _selectedFormat == id;
 
     return Expanded(
@@ -176,7 +211,11 @@ class _ExportReportBottomSheetState extends State<ExportReportBottomSheet> {
           ),
           child: Column(
             children: [
-              Icon(icon, color: isSelected ? AppColors.primary : iconColor, size: 24),
+              Icon(
+                icon,
+                color: isSelected ? AppColors.primary : iconColor,
+                size: 24,
+              ),
               const SizedBox(height: 6),
               Text(
                 label,

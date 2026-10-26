@@ -6,7 +6,8 @@ class NotificationItem {
   final String description;
   final String time;
   final bool unread;
-  final String type; // 'sop' | 'task' | 'deadline' | 'urgent' | 'chat' | 'review' | 'system'
+  final String
+  type; // 'sop' | 'task' | 'deadline' | 'urgent' | 'chat' | 'review' | 'system'
   final String? senderName;
   final String? senderAvatar;
   final int? targetTab; // 0: Beranda, 1: Tugas, 2: SOP, 3: Laporan, 4: Chat, 5: Tim & Notif

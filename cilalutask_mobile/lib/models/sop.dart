@@ -4,15 +4,9 @@ class ContentSection {
   final String heading;
   final List<String> items;
 
-  const ContentSection({
-    required this.heading,
-    required this.items,
-  });
+  const ContentSection({required this.heading, required this.items});
 
-  ContentSection copyWith({
-    String? heading,
-    List<String>? items,
-  }) {
+  ContentSection copyWith({String? heading, List<String>? items}) {
     return ContentSection(
       heading: heading ?? this.heading,
       items: items ?? this.items,
@@ -20,10 +14,7 @@ class ContentSection {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'heading': heading,
-      'items': items,
-    };
+    return {'heading': heading, 'items': items};
   }
 
   factory ContentSection.fromMap(Map<String, dynamic> map) {

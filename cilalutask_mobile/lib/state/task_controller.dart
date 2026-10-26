@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/task.dart';
 import '../data/mock_data.dart';
 import '../repositories/cilalu_repository.dart';
@@ -138,7 +139,9 @@ class TaskController extends ChangeNotifier {
         target = t.copyWith(
           status: TaskStatus.completed,
           progressPercent: 100,
-          subtasks: t.subtasks.map((st) => st.copyWith(completed: true)).toList(),
+          subtasks: t.subtasks
+              .map((st) => st.copyWith(completed: true))
+              .toList(),
           needsReview: false,
         );
         return target!;

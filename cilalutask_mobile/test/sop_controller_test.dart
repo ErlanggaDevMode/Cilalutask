@@ -72,7 +72,9 @@ void main() {
       // Bookmark Toggle
       final initialBookmark = readSop.isBookmarked;
       await controller.toggleBookmarkSop('TEST-CO', firstSopId);
-      final bookmarkedSop = controller.sops.firstWhere((s) => s.id == firstSopId);
+      final bookmarkedSop = controller.sops.firstWhere(
+        (s) => s.id == firstSopId,
+      );
       expect(bookmarkedSop.isBookmarked, !initialBookmark);
     });
 

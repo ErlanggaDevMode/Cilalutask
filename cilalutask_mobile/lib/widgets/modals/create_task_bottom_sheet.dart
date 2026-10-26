@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../models/employee.dart';
@@ -69,10 +70,25 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
     'Finance & Akuntansi',
   ];
 
+  static const _fallbackAdminAssignee = Assignee(
+    id: 'admin-pic',
+    name: 'Admin Perusahaan',
+    shortName: 'AP',
+    avatar: '',
+    division: 'Manajemen',
+    role: 'Admin',
+  );
+
+  bool _isSubmitting = false;
+
   @override
   void initState() {
     super.initState();
-    _assigneeId = widget.defaultAssignee?.id ?? widget.employees.first.id;
+    _assigneeId =
+        widget.defaultAssignee?.id ??
+        (widget.employees.isNotEmpty
+            ? widget.employees.first.id
+            : _fallbackAdminAssignee.id);
   }
 
   @override
@@ -99,50 +115,62 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
     });
   }
 
-  void _submit() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final selectedAssignee = widget.employees.firstWhere(
-        (e) => e.id == _assigneeId,
-        orElse: () => widget.employees.first,
-      );
+  Assignee _getSelectedAssignee() {
+    if (widget.employees.isEmpty) {
+      return _fallbackAdminAssignee;
+    }
+    return widget.employees.firstWhere(
+      (e) => e.id == _assigneeId,
+      orElse: () => widget.employees.first,
+    );
+  }
 
-      final now = DateTime.now().millisecondsSinceEpoch;
-      final newTask = Task(
-        id: 'tsk-$now',
-        title: _titleController.text.trim(),
-        description: _descController.text.trim().isNotEmpty
-            ? _descController.text.trim()
-            : 'Instruksi operasional telah ditentukan.',
-        division: _division,
-        priority: _priority,
-        status: TaskStatus.inProgress,
-        deadlineLabel: _deadline,
-        isUrgentDeadline: _priority == PriorityType.high,
-        progressPercent: 0,
-        assignee: selectedAssignee,
-        subtasks: _subtasks
-            .asMap()
-            .entries
-            .map((entry) => Subtask(
+  Future<void> _submit() async {
+    if (_isSubmitting) return;
+    if (_formKey.currentState?.validate() ?? false) {
+      setState(() => _isSubmitting = true);
+      try {
+        final selectedAssignee = _getSelectedAssignee();
+
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final newTask = Task(
+          id: 'tsk-$now',
+          title: _titleController.text.trim(),
+          description: _descController.text.trim().isNotEmpty
+              ? _descController.text.trim()
+              : 'Instruksi operasional telah ditentukan.',
+          division: _division,
+          priority: _priority,
+          status: TaskStatus.inProgress,
+          deadlineLabel: _deadline,
+          isUrgentDeadline: _priority == PriorityType.high,
+          progressPercent: 0,
+          assignee: selectedAssignee,
+          subtasks: _subtasks
+              .asMap()
+              .entries
+              .map(
+                (entry) => Subtask(
                   id: 'st-$now-${entry.key}',
                   title: entry.value,
                   completed: false,
-                ))
-            .toList(),
-        needsReview: true,
-      );
+                ),
+              )
+              .toList(),
+          needsReview: true,
+        );
 
-      widget.onCreateTask(newTask);
-      Navigator.of(context).pop();
+        widget.onCreateTask(newTask);
+        if (mounted) Navigator.of(context).pop();
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedAssignee = widget.employees.firstWhere(
-      (e) => e.id == _assigneeId,
-      orElse: () => widget.employees.first,
-    );
+    final selectedAssignee = _getSelectedAssignee();
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -186,7 +214,11 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -218,8 +250,9 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                     decoration: const InputDecoration(
                       hintText: 'Misal: Migrasi Database ke Cloud',
                     ),
-                    validator: (val) =>
-                        (val == null || val.trim().isEmpty) ? 'Judul tugas wajib diisi' : null,
+                    validator: (val) => (val == null || val.trim().isEmpty)
+                        ? 'Judul tugas wajib diisi'
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -262,18 +295,31 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                             const SizedBox(height: 6),
                             DropdownButtonFormField<String>(
                               value: _division,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
                               decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                               ),
                               items: _divisions
-                                  .map((div) => DropdownMenuItem(
-                                        value: div,
-                                        child: Text(div, overflow: TextOverflow.ellipsis),
-                                      ))
+                                  .map(
+                                    (div) => DropdownMenuItem(
+                                      value: div,
+                                      child: Text(
+                                        div,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _division = val);
+                                if (val != null) {
+                                  setState(() => _division = val);
+                                }
                               },
                             ),
                           ],
@@ -297,18 +343,28 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                             const SizedBox(height: 6),
                             DropdownButtonFormField<PriorityType>(
                               value: _priority,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
                               decoration: const InputDecoration(
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
                               ),
                               items: PriorityType.values
-                                  .map((p) => DropdownMenuItem(
-                                        value: p,
-                                        child: Text(p.label),
-                                      ))
+                                  .map(
+                                    (p) => DropdownMenuItem(
+                                      value: p,
+                                      child: Text(p.label),
+                                    ),
+                                  )
                                   .toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _priority = val);
+                                if (val != null) {
+                                  setState(() => _priority = val);
+                                }
                               },
                             ),
                           ],
@@ -329,7 +385,10 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceSecondary,
                       borderRadius: BorderRadius.circular(12),
@@ -353,14 +412,23 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
                               ),
-                              items: widget.employees.map((emp) {
-                                return DropdownMenuItem(
-                                  value: emp.id,
-                                  child: Text('${emp.name} (${emp.division})'),
-                                );
-                              }).toList(),
+                              items:
+                                  (widget.employees.isNotEmpty
+                                          ? widget.employees
+                                          : [_fallbackAdminAssignee])
+                                      .map((emp) {
+                                        return DropdownMenuItem(
+                                          value: emp.id,
+                                          child: Text(
+                                            '${emp.name} (${emp.division})',
+                                          ),
+                                        );
+                                      })
+                                      .toList(),
                               onChanged: (val) {
-                                if (val != null) setState(() => _assigneeId = val);
+                                if (val != null) {
+                                  setState(() => _assigneeId = val);
+                                }
                               },
                             ),
                           ),
@@ -384,7 +452,11 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                     initialValue: _deadline,
                     style: const TextStyle(fontSize: 13),
                     decoration: const InputDecoration(
-                      prefixIcon: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.primary),
+                      prefixIcon: Icon(
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                        color: AppColors.primary,
+                      ),
                       hintText: 'Contoh: Besok, 17:00 / 3 hari lagi',
                     ),
                     onChanged: (val) => _deadline = val,
@@ -418,7 +490,10 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                   ..._subtasks.asMap().entries.map((entry) {
                     return Container(
                       margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceSecondary,
                         borderRadius: BorderRadius.circular(10),
@@ -426,16 +501,27 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_outline_rounded, size: 16, color: AppColors.primary),
+                          const Icon(
+                            Icons.check_circle_outline_rounded,
+                            size: 16,
+                            color: AppColors.primary,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               entry.value,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textPrimary,
+                              ),
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
+                            icon: const Icon(
+                              Icons.delete_outline_rounded,
+                              size: 16,
+                              color: AppColors.danger,
+                            ),
                             onPressed: () => _removeSubtask(entry.key),
                             visualDensity: VisualDensity.compact,
                           ),
@@ -453,7 +539,10 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                           style: const TextStyle(fontSize: 12),
                           decoration: const InputDecoration(
                             hintText: 'Ketik subtask baru...',
-                            contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                           ),
                           onSubmitted: (_) => _addSubtask(),
                         ),
@@ -462,7 +551,10 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                       ElevatedButton(
                         onPressed: _addSubtask,
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
                           backgroundColor: AppColors.primaryLight,
                           foregroundColor: AppColors.primary,
                         ),
@@ -477,21 +569,30 @@ class _CreateTaskBottomSheetState extends State<CreateTaskBottomSheet> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: _submit,
+                      onPressed: _isSubmitting ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        'Terbitkan Tugas Sekarang',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: _isSubmitting
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Terbitkan Tugas Sekarang',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 12),

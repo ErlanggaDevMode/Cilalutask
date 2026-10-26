@@ -73,12 +73,9 @@ void main() {
       addTearDown(() => controller.dispose());
 
       final firstId = controller.tasks.first.id;
-      final updated = await controller.saveProgress(
-        'TEST-CO',
-        firstId,
-        const [Subtask(id: 'st-1', title: 'Subtask 1', completed: true)],
-        100,
-      );
+      final updated = await controller.saveProgress('TEST-CO', firstId, const [
+        Subtask(id: 'st-1', title: 'Subtask 1', completed: true),
+      ], 100);
 
       expect(updated?.status, TaskStatus.completed);
       expect(updated?.progressPercent, 100);
@@ -87,9 +84,7 @@ void main() {
 
     test('approveTask marks task completed and needsReview false', () async {
       Task? approved;
-      final controller = TaskController(
-        onTaskApproved: (t) => approved = t,
-      );
+      final controller = TaskController(onTaskApproved: (t) => approved = t);
       addTearDown(() => controller.dispose());
 
       final firstId = controller.tasks.first.id;

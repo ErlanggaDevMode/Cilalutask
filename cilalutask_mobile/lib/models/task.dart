@@ -54,11 +54,7 @@ class Subtask {
     this.completed = false,
   });
 
-  Subtask copyWith({
-    String? id,
-    String? title,
-    bool? completed,
-  }) {
+  Subtask copyWith({String? id, String? title, bool? completed}) {
     return Subtask(
       id: id ?? this.id,
       title: title ?? this.title,
@@ -67,11 +63,7 @@ class Subtask {
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'title': title,
-      'completed': completed,
-    };
+    return {'id': id, 'title': title, 'completed': completed};
   }
 
   factory Subtask.fromMap(Map<String, dynamic> map) {

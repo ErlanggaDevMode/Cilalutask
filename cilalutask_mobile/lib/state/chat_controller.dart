@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
 import '../models/chat_model.dart';
 import '../repositories/cilalu_repository.dart';
 
@@ -211,15 +213,14 @@ class ChatController extends ChangeNotifier {
     cancelSubscription();
     if (!_repository.isCloudAvailable) return;
 
-    _chatSubscription = _repository.streamMessages(companyCode).listen(
-      (incoming) {
-        if (incoming.isNotEmpty) {
-          _messages = incoming;
-          notifyListeners();
-        }
-      },
-      onError: (e) => debugPrint('Chat subscription error: $e'),
-    );
+    _chatSubscription = _repository.streamMessages(companyCode).listen((
+      incoming,
+    ) {
+      if (incoming.isNotEmpty) {
+        _messages = incoming;
+        notifyListeners();
+      }
+    }, onError: (e) => debugPrint('Chat subscription error: $e'));
   }
 
   void cancelSubscription() {
@@ -265,7 +266,11 @@ class ChatController extends ChangeNotifier {
     }
   }
 
-  Future<void> addChannel(String companyCode, String name, String description) async {
+  Future<void> addChannel(
+    String companyCode,
+    String name,
+    String description,
+  ) async {
     final newCh = ChatChannel(
       id: 'ch-${DateTime.now().millisecondsSinceEpoch}',
       name: name.startsWith('#') ? name : '#$name',

@@ -1,6 +1,8 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+
 import '../models/notification_item.dart';
 import '../data/mock_data.dart';
 import '../repositories/cilalu_repository.dart';
@@ -29,7 +31,8 @@ class NotificationController extends ChangeNotifier {
 
   List<NotificationItem> get notifications => List.unmodifiable(_notifications);
   NotificationItem? get activeInAppNotification => _activeInAppNotification;
-  int get unreadNotificationsCount => _notifications.where((n) => n.unread).length;
+  int get unreadNotificationsCount =>
+      _notifications.where((n) => n.unread).length;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
@@ -81,15 +84,14 @@ class NotificationController extends ChangeNotifier {
     cancelSubscription();
     if (!_repository.isCloudAvailable) return;
 
-    _notifsSubscription = _repository.streamNotifications(companyCode).listen(
-      (notifs) {
-        if (notifs.isNotEmpty) {
-          _notifications = notifs;
-          notifyListeners();
-        }
-      },
-      onError: (e) => debugPrint('Notification subscription error: $e'),
-    );
+    _notifsSubscription = _repository.streamNotifications(companyCode).listen((
+      notifs,
+    ) {
+      if (notifs.isNotEmpty) {
+        _notifications = notifs;
+        notifyListeners();
+      }
+    }, onError: (e) => debugPrint('Notification subscription error: $e'));
   }
 
   /// Cancels active real-time stream subscription.
@@ -137,7 +139,9 @@ class NotificationController extends ChangeNotifier {
 
   /// Marks all current notifications as read.
   void markAllNotificationsAsRead() {
-    _notifications = _notifications.map((n) => n.copyWith(unread: false)).toList();
+    _notifications = _notifications
+        .map((n) => n.copyWith(unread: false))
+        .toList();
     notifyListeners();
   }
 

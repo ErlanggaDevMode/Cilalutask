@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
 import '../../models/sop.dart';
 
 class SopDetailBottomSheet extends StatelessWidget {
   final SOPDocument sop;
   final void Function(String sopId) onConfirmRead;
+  final bool isAdmin;
+  final VoidCallback? onDelete;
 
   const SopDetailBottomSheet({
     super.key,
     required this.sop,
     required this.onConfirmRead,
+    this.isAdmin = false,
+    this.onDelete,
   });
 
   static Future<void> show(
     BuildContext context, {
     required SOPDocument sop,
     required void Function(String sopId) onConfirmRead,
+    bool isAdmin = false,
+    VoidCallback? onDelete,
   }) {
     return showModalBottomSheet<void>(
       context: context,
@@ -27,6 +35,8 @@ class SopDetailBottomSheet extends StatelessWidget {
       builder: (context) => SopDetailBottomSheet(
         sop: sop,
         onConfirmRead: onConfirmRead,
+        isAdmin: isAdmin,
+        onDelete: onDelete,
       ),
     );
   }
@@ -56,7 +66,11 @@ class SopDetailBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.menu_book_rounded, size: 18, color: AppColors.primary),
+                const Icon(
+                  Icons.menu_book_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Dokumen Standar Operasional',
@@ -68,7 +82,11 @@ class SopDetailBottomSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -88,7 +106,10 @@ class SopDetailBottomSheet extends StatelessWidget {
                   runSpacing: 6,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.primaryLight,
                         borderRadius: BorderRadius.circular(6),
@@ -103,7 +124,10 @@ class SopDetailBottomSheet extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceSecondary,
                         borderRadius: BorderRadius.circular(6),
@@ -119,7 +143,10 @@ class SopDetailBottomSheet extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.successLight,
                         borderRadius: BorderRadius.circular(6),
@@ -224,11 +251,20 @@ class SopDetailBottomSheet extends StatelessWidget {
                           const SizedBox(height: 8),
                           ...sec.items.map((item) {
                             return Padding(
-                              padding: const EdgeInsets.only(left: 28, bottom: 6),
+                              padding: const EdgeInsets.only(
+                                left: 28,
+                                bottom: 6,
+                              ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text('• ', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
+                                  const Text(
+                                    '• ',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                   Expanded(
                                     child: Text(
                                       item,
@@ -255,7 +291,11 @@ class SopDetailBottomSheet extends StatelessWidget {
                   const SizedBox(height: 6),
                   const Text(
                     '1. Melakukan pemeriksaan menyeluruh sebelum menjalankan operasional.\n2. Melaporkan kendala langsung kepada supervisor penanggung jawab.\n3. Mengikuti regulasi K3 dan standar ISO yang berlaku.',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.5),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: 16),
                 ],
@@ -266,11 +306,17 @@ class SopDetailBottomSheet extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: AppColors.successLight.withOpacity(0.7),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.success.withOpacity(0.3)),
+                    border: Border.all(
+                      color: AppColors.success.withOpacity(0.3),
+                    ),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.verified_user_rounded, color: AppColors.successDark, size: 22),
+                      const Icon(
+                        Icons.verified_user_rounded,
+                        color: AppColors.successDark,
+                        size: 22,
+                      ),
                       const SizedBox(width: 10),
                       const Expanded(
                         child: Column(
@@ -296,16 +342,25 @@ class SopDetailBottomSheet extends StatelessWidget {
                       ),
                       if (sop.isReadByMe)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.success.withOpacity(0.5)),
+                            border: Border.all(
+                              color: AppColors.success.withOpacity(0.5),
+                            ),
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.check_rounded, size: 14, color: AppColors.successDark),
+                              Icon(
+                                Icons.check_rounded,
+                                size: 14,
+                                color: AppColors.successDark,
+                              ),
                               SizedBox(width: 4),
                               Text(
                                 'Terverifikasi',
@@ -335,6 +390,31 @@ class SopDetailBottomSheet extends StatelessWidget {
                 // Action Buttons
                 Row(
                   children: [
+                    if (isAdmin && onDelete != null) ...[
+                      IconButton(
+                        onPressed: () async {
+                          final confirmed = await AppConfirmDialog.show(
+                            context,
+                            title: 'Hapus SOP?',
+                            message:
+                                'Dokumen "${sop.title}" (${sop.code}) akan dihapus secara permanen dari sistem.',
+                            confirmLabel: 'Hapus SOP',
+                            isDestructive: true,
+                            icon: Icons.delete_outline_rounded,
+                          );
+                          if (confirmed == true && context.mounted) {
+                            Navigator.of(context).pop();
+                            onDelete!();
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.delete_outline_rounded,
+                          color: AppColors.danger,
+                        ),
+                        tooltip: 'Hapus SOP',
+                      ),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -350,11 +430,18 @@ class SopDetailBottomSheet extends StatelessWidget {
                         },
                         icon: const Icon(Icons.check_circle_rounded, size: 16),
                         label: Text(
-                          sop.isReadByMe ? 'Sudah Disetujui' : 'Saya Sudah Baca & Setuju',
-                          style: const TextStyle(color: Colors.white, fontSize: 12),
+                          sop.isReadByMe
+                              ? 'Sudah Disetujui'
+                              : 'Saya Sudah Baca & Setuju',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: sop.isReadByMe ? AppColors.success : AppColors.primary,
+                          backgroundColor: sop.isReadByMe
+                              ? AppColors.success
+                              : AppColors.primary,
                         ),
                       ),
                     ),

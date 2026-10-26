@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
 import '../../core/widgets/custom_badge.dart';
@@ -26,10 +27,8 @@ class ReviewTaskBottomSheet extends StatelessWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => ReviewTaskBottomSheet(
-        task: task,
-        onApproveTask: onApproveTask,
-      ),
+      builder: (context) =>
+          ReviewTaskBottomSheet(task: task, onApproveTask: onApproveTask),
     );
   }
 
@@ -60,7 +59,11 @@ class ReviewTaskBottomSheet extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             child: Row(
               children: [
-                const Icon(Icons.assignment_turned_in_rounded, size: 18, color: AppColors.primary),
+                const Icon(
+                  Icons.assignment_turned_in_rounded,
+                  size: 18,
+                  color: AppColors.primary,
+                ),
                 const SizedBox(width: 8),
                 const Text(
                   'Review & Persetujuan Tugas',
@@ -72,7 +75,11 @@ class ReviewTaskBottomSheet extends StatelessWidget {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
                   onPressed: () => Navigator.of(context).pop(),
                   visualDensity: VisualDensity.compact,
                 ),
@@ -156,7 +163,10 @@ class ReviewTaskBottomSheet extends StatelessWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(8),
@@ -203,9 +213,14 @@ class ReviewTaskBottomSheet extends StatelessWidget {
                 ...task.subtasks.map((st) {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: st.completed ? AppColors.successLight.withOpacity(0.5) : AppColors.surfaceSecondary,
+                      color: st.completed
+                          ? AppColors.successLight.withOpacity(0.5)
+                          : AppColors.surfaceSecondary,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: AppColors.border),
                     ),
@@ -216,13 +231,19 @@ class ReviewTaskBottomSheet extends StatelessWidget {
                           height: 18,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            color: st.completed ? AppColors.success : AppColors.border,
+                            color: st.completed
+                                ? AppColors.success
+                                : AppColors.border,
                           ),
                           alignment: Alignment.center,
                           child: Icon(
-                            st.completed ? Icons.check_rounded : Icons.fiber_manual_record_rounded,
+                            st.completed
+                                ? Icons.check_rounded
+                                : Icons.fiber_manual_record_rounded,
                             size: 12,
-                            color: st.completed ? Colors.white : AppColors.textMuted,
+                            color: st.completed
+                                ? Colors.white
+                                : AppColors.textMuted,
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -231,8 +252,12 @@ class ReviewTaskBottomSheet extends StatelessWidget {
                             st.title,
                             style: TextStyle(
                               fontSize: 12,
-                              color: st.completed ? AppColors.textSecondary : AppColors.textPrimary,
-                              decoration: st.completed ? TextDecoration.lineThrough : null,
+                              color: st.completed
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary,
+                              decoration: st.completed
+                                  ? TextDecoration.lineThrough
+                                  : null,
                             ),
                           ),
                         ),

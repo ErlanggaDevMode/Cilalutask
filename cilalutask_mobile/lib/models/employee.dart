@@ -85,7 +85,8 @@ class EmployeePerformance {
   final int completedTasks;
   final int delayedTasks;
   final int score;
-  final String statusTag; // 'SANGAT BAIK' | 'OPTIMAL' | 'STABIL' | 'PERLU PENINGKATAN'
+  final String
+  statusTag; // 'SANGAT BAIK' | 'OPTIMAL' | 'STABIL' | 'PERLU PENINGKATAN'
   final bool isStar;
 
   const EmployeePerformance({

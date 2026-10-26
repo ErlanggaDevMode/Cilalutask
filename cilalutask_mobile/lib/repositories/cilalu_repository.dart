@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../models/company.dart';
@@ -18,11 +19,9 @@ class CilaluRepository {
   final FirestoreService _firestore;
   final LocalStorageService _storage;
 
-  CilaluRepository({
-    FirestoreService? firestore,
-    LocalStorageService? storage,
-  })  : _firestore = firestore ?? FirestoreService(),
-        _storage = storage ?? LocalStorageService();
+  CilaluRepository({FirestoreService? firestore, LocalStorageService? storage})
+    : _firestore = firestore ?? FirestoreService(),
+      _storage = storage ?? LocalStorageService();
 
   SyncStatus _syncStatus = SyncStatus.synced;
   SyncStatus get syncStatus => _syncStatus;
@@ -40,7 +39,9 @@ class CilaluRepository {
     await _storage.init();
     try {
       await _firestore.init();
-      _syncStatus = _firestore.isAvailable ? SyncStatus.synced : SyncStatus.offline;
+      _syncStatus = _firestore.isAvailable
+          ? SyncStatus.synced
+          : SyncStatus.offline;
     } catch (e) {
       _syncStatus = SyncStatus.offline;
     }
@@ -55,15 +56,14 @@ class CilaluRepository {
     String? customAvatar,
     String? userId,
     String? userEmail,
-  }) =>
-      _storage.saveSession(
-        isAuthenticated: isAuthenticated,
-        role: role,
-        employeeId: employeeId,
-        customAvatar: customAvatar,
-        userId: userId,
-        userEmail: userEmail,
-      );
+  }) => _storage.saveSession(
+    isAuthenticated: isAuthenticated,
+    role: role,
+    employeeId: employeeId,
+    customAvatar: customAvatar,
+    userId: userId,
+    userEmail: userEmail,
+  );
 
   Future<void> clearSession() => _storage.clearSession();
 
@@ -96,7 +96,9 @@ class CilaluRepository {
     final existing = await _storage.loadCompanies() ?? [];
     final updated = [
       company,
-      ...existing.where((c) => c.code.toUpperCase() != company.code.toUpperCase())
+      ...existing.where(
+        (c) => c.code.toUpperCase() != company.code.toUpperCase(),
+      ),
     ];
     await _storage.saveCompanies(updated);
     await _storage.saveCurrentCompanyCode(company.code);
@@ -116,17 +118,21 @@ class CilaluRepository {
   }
 
   Future<String?> loadCurrentCompanyCode() => _storage.loadCurrentCompanyCode();
-  Future<void> saveCurrentCompanyCode(String code) => _storage.saveCurrentCompanyCode(code);
+  Future<void> saveCurrentCompanyCode(String code) =>
+      _storage.saveCurrentCompanyCode(code);
 
   // ─────────────────────────────────────────────────────────────
   //  TASKS (Granular CRUD)
   // ─────────────────────────────────────────────────────────────
 
-  Future<List<Task>> getTasks(String companyCode) async {
+  Future<List<Task>> getTasks(String companyCode, {int limit = 100}) async {
     if (_firestore.isAvailable) {
       try {
         _syncStatus = SyncStatus.syncing;
-        final cloudTasks = await _firestore.loadTasks(companyCode);
+        final cloudTasks = await _firestore.loadTasks(
+          companyCode,
+          limit: limit,
+        );
         await _storage.saveTasks(companyCode, cloudTasks);
         _syncStatus = SyncStatus.synced;
         return cloudTasks;
@@ -160,6 +166,8 @@ class CilaluRepository {
       }
     } else {
       _syncStatus = SyncStatus.offline;
+      // Queue write for background reconciliation
+      await _storage.savePendingTask(companyCode, task);
     }
   }
 
@@ -180,12 +188,15 @@ class CilaluRepository {
       }
     } else {
       _syncStatus = SyncStatus.offline;
+      // Queue update for background reconciliation
+      await _storage.savePendingTask(companyCode, task);
     }
   }
 
   Future<void> deleteTask(String companyCode, String taskId) async {
     // 1. Delete from local cache
     await _storage.deleteTask(companyCode, taskId);
+    await _storage.removePendingTask(companyCode, taskId);
 
     // 2. Delete from Cloud Firestore
     if (_firestore.isAvailable) {
@@ -199,6 +210,30 @@ class CilaluRepository {
     } else {
       _syncStatus = SyncStatus.offline;
     }
+  }
+
+  /// Reconciles queued offline writes with Cloud Firestore when connection is restored.
+  Future<int> reconcilePendingWrites(String companyCode) async {
+    if (!_firestore.isAvailable) return 0;
+
+    final pending = await _storage.loadPendingTasks(companyCode);
+    if (pending.isEmpty) return 0;
+
+    int reconciledCount = 0;
+    _syncStatus = SyncStatus.syncing;
+
+    for (final task in pending) {
+      try {
+        await _firestore.updateTask(companyCode, task);
+        await _storage.removePendingTask(companyCode, task.id);
+        reconciledCount++;
+      } catch (e) {
+        debugPrint('Failed to reconcile task ${task.id}: $e');
+      }
+    }
+
+    _syncStatus = SyncStatus.synced;
+    return reconciledCount;
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -354,7 +389,10 @@ class CilaluRepository {
     return local ?? [];
   }
 
-  Future<void> saveChannels(String companyCode, List<ChatChannel> channels) async {
+  Future<void> saveChannels(
+    String companyCode,
+    List<ChatChannel> channels,
+  ) async {
     await _storage.saveChannels(companyCode, channels);
     if (_firestore.isAvailable) {
       try {
@@ -365,10 +403,16 @@ class CilaluRepository {
     }
   }
 
-  Future<List<ChatMessage>> getMessages(String companyCode, {String? channelId}) async {
+  Future<List<ChatMessage>> getMessages(
+    String companyCode, {
+    String? channelId,
+  }) async {
     if (_firestore.isAvailable) {
       try {
-        final cloud = await _firestore.loadMessages(companyCode, channelId: channelId);
+        final cloud = await _firestore.loadMessages(
+          companyCode,
+          channelId: channelId,
+        );
         if (cloud.isNotEmpty) {
           await _storage.saveMessages(companyCode, cloud);
           return cloud;
@@ -414,7 +458,10 @@ class CilaluRepository {
     }
   }
 
-  Stream<List<ChatMessage>> streamMessages(String companyCode, {String? channelId}) {
+  Stream<List<ChatMessage>> streamMessages(
+    String companyCode, {
+    String? channelId,
+  }) {
     return _firestore.messagesStream(companyCode, channelId: channelId);
   }
 
@@ -438,7 +485,10 @@ class CilaluRepository {
     return local ?? [];
   }
 
-  Future<void> pushNotification(String companyCode, NotificationItem notif) async {
+  Future<void> pushNotification(
+    String companyCode,
+    NotificationItem notif,
+  ) async {
     final local = await _storage.loadNotifications(companyCode) ?? [];
     await _storage.saveNotifications(companyCode, [notif, ...local]);
 
@@ -463,7 +513,10 @@ class CilaluRepository {
     }
   }
 
-  Future<void> clearAllNotifications(String companyCode, List<String> notifIds) async {
+  Future<void> clearAllNotifications(
+    String companyCode,
+    List<String> notifIds,
+  ) async {
     await _storage.saveNotifications(companyCode, []);
 
     if (_firestore.isAvailable) {
@@ -499,7 +552,10 @@ class CilaluRepository {
     return local ?? [];
   }
 
-  Future<void> submitJoinRequest(String companyCode, JoinRequest request) async {
+  Future<void> submitJoinRequest(
+    String companyCode,
+    JoinRequest request,
+  ) async {
     final local = await _storage.loadJoinRequests() ?? [];
     await _storage.saveJoinRequests([request, ...local]);
 
@@ -526,7 +582,9 @@ class CilaluRepository {
     // 1. Update local cache
     final localRequests = await _storage.loadJoinRequests() ?? [];
     final updatedRequests = localRequests.map((r) {
-      return r.id == request.id ? r.copyWith(status: JoinRequestStatus.approved) : r;
+      return r.id == request.id
+          ? r.copyWith(status: JoinRequestStatus.approved)
+          : r;
     }).toList();
     await _storage.saveJoinRequests(updatedRequests);
 
@@ -535,7 +593,10 @@ class CilaluRepository {
 
     if (welcomeNotif != null) {
       final localNotifs = await _storage.loadNotifications(companyCode) ?? [];
-      await _storage.saveNotifications(companyCode, [welcomeNotif, ...localNotifs]);
+      await _storage.saveNotifications(companyCode, [
+        welcomeNotif,
+        ...localNotifs,
+      ]);
     }
 
     // 2. Cloud batch commit
@@ -583,7 +644,9 @@ class CilaluRepository {
   void _handleError(dynamic e) {
     if (e is DataException) {
       _lastError = e.message;
-      _syncStatus = e.code == DataErrorCode.permissionDenied || e.code == DataErrorCode.invalidData
+      _syncStatus =
+          e.code == DataErrorCode.permissionDenied ||
+              e.code == DataErrorCode.invalidData
           ? SyncStatus.error
           : SyncStatus.offline;
     } else {

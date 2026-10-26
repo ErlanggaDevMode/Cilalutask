@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
+import '../../core/widgets/app_empty_state.dart';
 import '../../state/app_state_scope.dart';
 import '../../widgets/modals/sop_detail_bottom_sheet.dart';
 import '../../widgets/modals/upload_sop_bottom_sheet.dart';
+import '../../widgets/modals/sop_filter_bottom_sheet.dart';
 
 class SopScreen extends StatefulWidget {
   const SopScreen({super.key});
@@ -16,8 +21,12 @@ class _SopScreenState extends State<SopScreen> {
   String _searchQuery = '';
   String _selectedCategory = 'Semua';
   String _sortOrder = 'Versi Terbaru';
+  bool _mandatoryOnly = false;
+  bool _bookmarkOnly = false;
+  bool _unreadOnly = false;
 
   final TextEditingController _searchController = TextEditingController();
+  Timer? _searchDebounceTimer;
 
   final List<String> _categories = [
     'Semua',
@@ -30,9 +39,40 @@ class _SopScreenState extends State<SopScreen> {
 
   @override
   void dispose() {
+    _searchDebounceTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
+
+  void _onSearchChanged(String val) {
+    _searchDebounceTimer?.cancel();
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) {
+        setState(() => _searchQuery = val);
+      }
+    });
+  }
+
+  void _resetSopFilters() {
+    _searchDebounceTimer?.cancel();
+    setState(() {
+      _searchQuery = '';
+      _searchController.clear();
+      _selectedCategory = 'Semua';
+      _sortOrder = 'Versi Terbaru';
+      _mandatoryOnly = false;
+      _bookmarkOnly = false;
+      _unreadOnly = false;
+    });
+  }
+
+  bool get _hasActiveSopFilters =>
+      _searchQuery.isNotEmpty ||
+      _selectedCategory != 'Semua' ||
+      _sortOrder != 'Versi Terbaru' ||
+      _mandatoryOnly ||
+      _bookmarkOnly ||
+      _unreadOnly;
 
   IconData _getCategoryIcon(String category) {
     if (category.contains('Customer Service')) {
@@ -65,6 +105,18 @@ class _SopScreenState extends State<SopScreen> {
         }
       }
 
+      if (_mandatoryOnly && !sop.isUrgentMandatory) {
+        return false;
+      }
+
+      if (_bookmarkOnly && !sop.isBookmarked) {
+        return false;
+      }
+
+      if (_unreadOnly && sop.isReadByMe) {
+        return false;
+      }
+
       if (_searchQuery.trim().isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchTitle = sop.title.toLowerCase().contains(q);
@@ -79,6 +131,15 @@ class _SopScreenState extends State<SopScreen> {
       return true;
     }).toList();
 
+    // Apply sorting
+    if (_sortOrder == 'Kode SOP (A-Z)') {
+      filteredSops.sort((a, b) => a.code.compareTo(b.code));
+    } else if (_sortOrder == 'Estimasi Baca') {
+      filteredSops.sort(
+        (a, b) => (a.duration ?? '').compareTo(b.duration ?? ''),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       children: [
@@ -86,28 +147,32 @@ class _SopScreenState extends State<SopScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'KNOWLEDGE BASE',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: 0.8,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'KNOWLEDGE BASE',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                ),
-                SizedBox(height: 2),
-                Text(
-                  'Pusat Standar Operasional',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                  SizedBox(height: 2),
+                  Text(
+                    'Pusat Standar Operasional',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
             Row(
               children: [
@@ -168,6 +233,7 @@ class _SopScreenState extends State<SopScreen> {
                               color: AppColors.textMuted,
                             ),
                             onPressed: () {
+                              _searchDebounceTimer?.cancel();
                               _searchController.clear();
                               setState(() => _searchQuery = '');
                             },
@@ -178,23 +244,69 @@ class _SopScreenState extends State<SopScreen> {
                     focusedBorder: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onChanged: (val) => setState(() => _searchQuery = val),
+                  onChanged: _onSearchChanged,
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.primaryLight,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.primaryBorder),
-              ),
-              child: const Icon(
-                Icons.tune_rounded,
-                color: AppColors.primary,
-                size: 20,
+            InkWell(
+              onTap: () async {
+                final result = await SopFilterBottomSheet.show(
+                  context,
+                  initialSortOrder: _sortOrder,
+                  initialMandatoryOnly: _mandatoryOnly,
+                  initialBookmarkOnly: _bookmarkOnly,
+                  initialUnreadOnly: _unreadOnly,
+                );
+                if (result != null) {
+                  setState(() {
+                    _sortOrder = result.sortOrder;
+                    _mandatoryOnly = result.mandatoryOnly;
+                    _bookmarkOnly = result.bookmarkOnly;
+                    _unreadOnly = result.unreadOnly;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: _hasActiveSopFilters
+                      ? AppColors.primaryDark
+                      : AppColors.primaryLight,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _hasActiveSopFilters
+                        ? AppColors.primaryDark
+                        : AppColors.primaryBorder,
+                  ),
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Icon(
+                      Icons.tune_rounded,
+                      color: _hasActiveSopFilters
+                          ? Colors.white
+                          : AppColors.primary,
+                      size: 20,
+                    ),
+                    if (_hasActiveSopFilters)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF6EE7B7),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -243,7 +355,10 @@ class _SopScreenState extends State<SopScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 2,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         const Text(
                           'Kelola Dokumen',
@@ -253,7 +368,6 @@ class _SopScreenState extends State<SopScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 6,
@@ -380,10 +494,14 @@ class _SopScreenState extends State<SopScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Top tag
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
                           width: 8,
@@ -394,12 +512,16 @@ class _SopScreenState extends State<SopScreen> {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Text(
-                          'WAJIB DIBACA & DIKONFIRMASI',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.danger,
+                        const Flexible(
+                          child: Text(
+                            'WAJIB DIBACA & DIKONFIRMASI',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.danger,
+                            ),
                           ),
                         ),
                       ],
@@ -428,8 +550,11 @@ class _SopScreenState extends State<SopScreen> {
                 const SizedBox(height: 8),
 
                 // Code & Due
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       urgentSop.code,
@@ -440,6 +565,7 @@ class _SopScreenState extends State<SopScreen> {
                       ),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.access_time_rounded,
@@ -474,10 +600,14 @@ class _SopScreenState extends State<SopScreen> {
                 const SizedBox(height: 12),
 
                 // Action Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(
                           Icons.verified_user_rounded,
@@ -485,12 +615,17 @@ class _SopScreenState extends State<SopScreen> {
                           color: AppColors.successDark,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          urgentSop.complianceTag ?? 'Kepatuhan K3 Divisi Alat',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
+                        Flexible(
+                          child: Text(
+                            urgentSop.complianceTag ??
+                                'Kepatuhan K3 Divisi Alat',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ],
@@ -500,6 +635,18 @@ class _SopScreenState extends State<SopScreen> {
                         SopDetailBottomSheet.show(
                           context,
                           sop: urgentSop,
+                          isAdmin: state.isAdmin,
+                          onDelete: () {
+                            state.deleteSop(urgentSop.id);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'SOP "${urgentSop.title}" berhasil dihapus.',
+                                ),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
                           onConfirmRead: (id) {
                             state.confirmReadSop(id);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -603,111 +750,41 @@ class _SopScreenState extends State<SopScreen> {
 
         // SOP List Cards
         if (filteredSops.isEmpty) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryLight,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    sops.isEmpty
-                        ? Icons.note_add_outlined
-                        : Icons.find_in_page_outlined,
-                    size: 36,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  sops.isEmpty
-                      ? 'Belum Ada Dokumen SOP di ${state.currentCompany.name}'
-                      : 'Tidak Ada Dokumen yang Cocok',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  sops.isEmpty
-                      ? 'Perusahaan dalam status blank. Anda dapat mengunggah SOP dan panduan kerja untuk tim.'
-                      : 'Coba ubah kata kunci pencarian atau ganti kategori divisi.',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textMuted,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                if (sops.isEmpty && state.isAdmin)
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      UploadSopBottomSheet.show(
-                        context,
-                        onAddSop: (newSop) {
-                          state.addSop(newSop);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'SOP "${newSop.title}" berhasil diunggah!',
-                              ),
-                              backgroundColor: AppColors.primaryDark,
+          AppEmptyState(
+            icon: sops.isEmpty
+                ? Icons.note_add_outlined
+                : Icons.find_in_page_outlined,
+            title: sops.isEmpty
+                ? 'Belum Ada Dokumen SOP di ${state.currentCompany.name}'
+                : 'Tidak Ada Dokumen yang Cocok',
+            description: sops.isEmpty
+                ? 'Perusahaan dalam status blank. Anda dapat mengunggah SOP dan panduan kerja untuk tim.'
+                : 'Coba ubah kata kunci pencarian atau ganti filter divisi.',
+            actionLabel: sops.isEmpty && state.isAdmin
+                ? 'Unggah SOP Baru'
+                : (sops.isNotEmpty ? 'Reset Filter' : null),
+            actionIcon: sops.isEmpty && state.isAdmin
+                ? Icons.upload_file_rounded
+                : Icons.refresh_rounded,
+            isActionPrimary: sops.isEmpty && state.isAdmin,
+            onAction: sops.isEmpty && state.isAdmin
+                ? () {
+                    UploadSopBottomSheet.show(
+                      context,
+                      onAddSop: (newSop) {
+                        state.addSop(newSop);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'SOP "${newSop.title}" berhasil diunggah!',
                             ),
-                          );
-                        },
-                      );
-                    },
-                    icon: const Icon(
-                      Icons.upload_file_rounded,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    label: const Text(
-                      'Unggah SOP Baru',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  )
-                else if (sops.isNotEmpty)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _searchQuery = '';
-                        _searchController.clear();
-                        _selectedCategory = 'Semua';
-                      });
-                    },
-                    child: const Text(
-                      'Reset Filter',
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-              ],
-            ),
+                            backgroundColor: AppColors.primaryDark,
+                          ),
+                        );
+                      },
+                    );
+                  }
+                : (sops.isNotEmpty ? _resetSopFilters : null),
           ),
         ] else ...[
           ...filteredSops.map((sop) {
@@ -728,62 +805,70 @@ class _SopScreenState extends State<SopScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryLight,
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: AppColors.primaryBorder,
-                              ),
-                            ),
-                            child: Icon(
-                              _getCategoryIcon(sop.category),
-                              color: AppColors.primary,
-                              size: 18,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${sop.code} • ${sop.category}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.textPrimary,
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryLight,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: AppColors.primaryBorder,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 1,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: sop.isNewUpdate
-                                      ? AppColors.successLight
-                                      : AppColors.primaryLight,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  sop.isNewUpdate ? 'Update Baru' : sop.version,
-                                  style: TextStyle(
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.bold,
-                                    color: sop.isNewUpdate
-                                        ? AppColors.successDark
-                                        : AppColors.primary,
+                              child: Icon(
+                                _getCategoryIcon(sop.category),
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${sop.code} • ${sop.category}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.textPrimary,
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(height: 2),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: sop.isNewUpdate
+                                          ? AppColors.successLight
+                                          : AppColors.primaryLight,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      sop.isNewUpdate
+                                          ? 'Update Baru'
+                                          : sop.version,
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        color: sop.isNewUpdate
+                                            ? AppColors.successDark
+                                            : AppColors.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: Icon(
@@ -948,8 +1033,11 @@ class _SopScreenState extends State<SopScreen> {
                   const SizedBox(height: 8),
 
                   // Footer: Date + Share + Buka SOP
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         sop.fileInfo ?? sop.lastUpdatedText,
@@ -959,6 +1047,7 @@ class _SopScreenState extends State<SopScreen> {
                         ),
                       ),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
                             icon: const Icon(
@@ -979,11 +1068,57 @@ class _SopScreenState extends State<SopScreen> {
                             visualDensity: VisualDensity.compact,
                           ),
                           const SizedBox(width: 4),
+                          if (state.isAdmin) ...[
+                            IconButton(
+                              icon: const Icon(
+                                Icons.delete_outline_rounded,
+                                size: 18,
+                                color: AppColors.danger,
+                              ),
+                              tooltip: 'Hapus Dokumen SOP',
+                              onPressed: () async {
+                                final confirmed = await AppConfirmDialog.show(
+                                  context,
+                                  title: 'Hapus SOP?',
+                                  message:
+                                      'Dokumen "${sop.title}" (${sop.code}) akan dihapus secara permanen.',
+                                  confirmLabel: 'Hapus SOP',
+                                  isDestructive: true,
+                                  icon: Icons.delete_outline_rounded,
+                                );
+                                if (confirmed == true && context.mounted) {
+                                  state.deleteSop(sop.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'SOP "${sop.title}" berhasil dihapus.',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            const SizedBox(width: 4),
+                          ],
                           ElevatedButton.icon(
                             onPressed: () {
                               SopDetailBottomSheet.show(
                                 context,
                                 sop: sop,
+                                isAdmin: state.isAdmin,
+                                onDelete: () {
+                                  state.deleteSop(sop.id);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'SOP "${sop.title}" berhasil dihapus.',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
                                 onConfirmRead: (id) {
                                   state.confirmReadSop(id);
                                   ScaffoldMessenger.of(context).showSnackBar(

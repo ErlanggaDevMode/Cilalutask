@@ -1,8 +1,16 @@
 # CILALUTASK Mobile (Dart & Flutter)
 
-Aplikasi mobile korporat **CILALUTASK** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, komunikasi chat multi-saluran, serta **arsitektur Multi-Perusahaan dengan Mode Data Bersih (Blank Slate) & Alur Persetu.  juan Karyawan (Admin Approval Workflow)**.
+[![Release Candidate](https://img.shields.io/badge/Release%20Candidate-v1.0.0--rc1-brightgreen.svg)](RELEASE_NOTES.md)
+[![Quality Gates](https://img.shields.io/badge/Quality%20Gates-100%25%20Passed%20(88%2F88)-blue.svg)](TESTING_AND_QUALITY_GATES.md)
+[![Flutter](https://img.shields.io/badge/Flutter-3.47.2%20%7C%20Dart%203.13.2-02569B.svg)](https://flutter.dev)
 
-Dibangun dengan arsitektur **Feature-First / Clean Architecture**, Flutter 3.x, dan Dart 3.x modern.
+Aplikasi mobile korporat **CILALUTASK** untuk manajemen tugas operasional, verifikasi kepatuhan Standard Operating Procedure (SOP), pelaporan efisiensi tim, komunikasi chat multi-saluran, serta **arsitektur Multi-Perusahaan dengan Mode Data Bersih (Blank Slate) & Alur Persetujuan Karyawan (Admin Approval Workflow)**.
+
+### 📚 Dokumentasi Release Candidate & Pengembang:
+- 🚀 [**RELEASE_NOTES.md**](RELEASE_NOTES.md) — Rangkuman fitur, bug fixes, dan langkah migrasi akun/data.
+- 📘 [**RELEASE_CANDIDATE_GUIDE.md**](RELEASE_CANDIDATE_GUIDE.md) — Panduan build, signing Android keystore, checklist pengujian manual 10 poin, dan klasifikasi audit.
+- 🧪 [**TESTING_AND_QUALITY_GATES.md**](TESTING_AND_QUALITY_GATES.md) — Inventaris pengujian (Unit, Widget, Integration), Firebase Emulator setup, dan CI/CD.
+- ⚡ [**PERFORMANCE_AND_OFFLINE_STRATEGY.md**](PERFORMANCE_AND_OFFLINE_STRATEGY.md) — Strategi bounded queries, lifecycle listener, antrean offline, dan rekonsiliasi data.
 
 ---
 
@@ -177,7 +185,28 @@ cilalutask_mobile/
 └── test/
     └── widget_test.dart                   # Automated tests: Auth, Multi-Company, Join Flow, Realtime, Persistence
 ```
-## Untuk Test Dan Juga Verify (Just Kiding)
+
+## 🧪 Automated Testing & Quality Gates
+
+Cilalutask Mobile dilengkapi dengan rangkaian pengujian otomatis dan quality gates komprehensif (Unit, Widget, Integration, Security Rules, Linter, dan Formatter).
+
+Panduan lengkap mengenai inventaris pengujian, perintah eksekusi lokal, dan cara menjalankan Firebase Emulator dapat dilihat pada:
+👉 [**TESTING_AND_QUALITY_GATES.md**](TESTING_AND_QUALITY_GATES.md)
+
+### Perintah Cepat Pengujian:
+```bash
+# 1. Validasi format kode
+dart format --output=none --set-exit-if-changed .
+
+# 2. Analisis kode statis
+flutter analyze
+
+# 3. Jalankan seluruh suite test Flutter
+flutter test
+```
+
+---
+
 ## 💾 Arsitektur Penyimpanan & Backend (100% Free & Tahan Lama)
 
 ### 1. Lapisan Penyimpanan Lokal (Aktif Saat Ini - Zero Setup, Zero Cost)

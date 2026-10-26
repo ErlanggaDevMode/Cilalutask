@@ -1,5 +1,7 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart';
+
 import '../models/company.dart';
 import '../models/employee.dart';
 import '../models/activity.dart';
@@ -46,8 +48,8 @@ class CompanyController extends ChangeNotifier {
     this.onActivity,
     List<Company>? initialCompanies,
     List<Assignee>? initialEmployees,
-  })  : _repository = repository ?? CilaluRepository(),
-        _authService = authService ?? AuthService() {
+  }) : _repository = repository ?? CilaluRepository(),
+       _authService = authService ?? AuthService() {
     if (initialCompanies != null && initialCompanies.isNotEmpty) {
       _companies = List.from(initialCompanies);
     }
@@ -66,9 +68,11 @@ class CompanyController extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   List<JoinRequest> get pendingJoinRequests => _joinRequests
-      .where((r) =>
-          r.status == JoinRequestStatus.pending &&
-          r.companyCode.toUpperCase() == _currentCompany.code.toUpperCase())
+      .where(
+        (r) =>
+            r.status == JoinRequestStatus.pending &&
+            r.companyCode.toUpperCase() == _currentCompany.code.toUpperCase(),
+      )
       .toList();
   int get pendingJoinRequestsCount => pendingJoinRequests.length;
 
@@ -86,7 +90,9 @@ class CompanyController extends ChangeNotifier {
 
   void setCompanies(List<Company> list) {
     _companies = List.from(list);
-    if (!_companies.any((c) => c.code.toUpperCase() == _currentCompany.code.toUpperCase())) {
+    if (!_companies.any(
+      (c) => c.code.toUpperCase() == _currentCompany.code.toUpperCase(),
+    )) {
       _currentCompany = _companies.first;
     }
     notifyListeners();
@@ -126,7 +132,9 @@ class CompanyController extends ChangeNotifier {
       _currentCompany = _companies.first;
     }
 
-    final savedRequests = await _repository.getJoinRequests(_currentCompany.code);
+    final savedRequests = await _repository.getJoinRequests(
+      _currentCompany.code,
+    );
     if (savedRequests.isNotEmpty) {
       _joinRequests = savedRequests;
     }
@@ -161,13 +169,12 @@ class CompanyController extends ChangeNotifier {
     cancelJoinRequestsSubscription();
     if (!_repository.isCloudAvailable) return;
 
-    _joinRequestsSubscription = _repository.streamJoinRequests(companyCode).listen(
-      (requests) {
-        _joinRequests = requests;
-        notifyListeners();
-      },
-      onError: (e) => debugPrint('Join requests subscription error: $e'),
-    );
+    _joinRequestsSubscription = _repository
+        .streamJoinRequests(companyCode)
+        .listen((requests) {
+          _joinRequests = requests;
+          notifyListeners();
+        }, onError: (e) => debugPrint('Join requests subscription error: $e'));
   }
 
   void cancelJoinRequestsSubscription() {
@@ -230,7 +237,8 @@ class CompanyController extends ChangeNotifier {
     final welcomeNotif = NotificationItem(
       id: 'notif-welcome-${DateTime.now().millisecondsSinceEpoch}',
       title: '🏢 Perusahaan ${newComp.name} Berhasil Dibuat!',
-      description: 'ID Perusahaan Anda: $cleanCode. Bagikan ke karyawan agar mereka dapat bergabung.',
+      description:
+          'ID Perusahaan Anda: $cleanCode. Bagikan ke karyawan agar mereka dapat bergabung.',
       time: 'Baru saja',
       type: 'system',
       targetTab: 5,
@@ -306,7 +314,8 @@ class CompanyController extends ChangeNotifier {
     final notif = NotificationItem(
       id: 'notif-join-${DateTime.now().millisecondsSinceEpoch}',
       title: '👥 Permintaan Bergabung Baru!',
-      description: '${req.userName} memohon bergabung ke divisi ${req.division} ($cleanCode).',
+      description:
+          '${req.userName} memohon bergabung ke divisi ${req.division} ($cleanCode).',
       time: 'Baru saja',
       type: 'system',
       targetTab: 5,
@@ -341,14 +350,17 @@ class CompanyController extends ChangeNotifier {
     final welcomeNotif = NotificationItem(
       id: 'notif-member-${DateTime.now().millisecondsSinceEpoch}',
       title: '🎉 Anggota Tim Baru Bergabung!',
-      description: '${newEmp.name} resmi bergabung ke divisi ${newEmp.division}.',
+      description:
+          '${newEmp.name} resmi bergabung ke divisi ${newEmp.division}.',
       time: 'Baru saja',
       type: 'system',
       targetTab: 5,
       timestamp: DateTime.now(),
     );
 
-    _joinRequests = _joinRequests.map((r) => r.id == requestId ? acceptedReq : r).toList();
+    _joinRequests = _joinRequests
+        .map((r) => r.id == requestId ? acceptedReq : r)
+        .toList();
     _employees = [..._employees, newEmp];
     onNotification?.call(welcomeNotif, showBanner: true);
 

@@ -14,36 +14,39 @@ void main() {
   });
 
   group('SECURITY AUDIT & ZERO-PASSWORD VERIFICATION', () {
-    test('1. Assignee model strictly excludes password from toMap and fromMap', () {
-      const emp = Assignee(
-        id: 'emp-sec-1',
-        name: 'John Doe',
-        shortName: 'John',
-        avatar: '',
-        division: 'Tech',
-        role: 'Engineer',
-        email: 'john@company.com',
-      );
+    test(
+      '1. Assignee model strictly excludes password from toMap and fromMap',
+      () {
+        const emp = Assignee(
+          id: 'emp-sec-1',
+          name: 'John Doe',
+          shortName: 'John',
+          avatar: '',
+          division: 'Tech',
+          role: 'Engineer',
+          email: 'john@company.com',
+        );
 
-      final map = emp.toMap();
+        final map = emp.toMap();
 
-      // Ensure password field is completely absent from serialization
-      expect(map.containsKey('password'), isFalse);
+        // Ensure password field is completely absent from serialization
+        expect(map.containsKey('password'), isFalse);
 
-      // Ensure deserializing old data with a legacy password ignores it
-      final legacyMap = {
-        'id': 'emp-sec-1',
-        'name': 'John Doe',
-        'shortName': 'John',
-        'avatar': '',
-        'division': 'Tech',
-        'role': 'Engineer',
-        'email': 'john@company.com',
-        'password': 'old_plain_password_123',
-      };
-      final parsed = Assignee.fromMap(legacyMap);
-      expect(parsed.toMap().containsKey('password'), isFalse);
-    });
+        // Ensure deserializing old data with a legacy password ignores it
+        final legacyMap = {
+          'id': 'emp-sec-1',
+          'name': 'John Doe',
+          'shortName': 'John',
+          'avatar': '',
+          'division': 'Tech',
+          'role': 'Engineer',
+          'email': 'john@company.com',
+          'password': 'old_plain_password_123',
+        };
+        final parsed = Assignee.fromMap(legacyMap);
+        expect(parsed.toMap().containsKey('password'), isFalse);
+      },
+    );
 
     test('2. Company model strictly excludes password and uses adminUid', () {
       final comp = Company(
@@ -202,40 +205,46 @@ void main() {
       expect(controller.tasks.any((t) => t.id == 'unauthorized-task'), isFalse);
     });
 
-    test('6. Logout clears all sensitive state and prevents data leaks', () async {
-      final controller = AppStateController();
-      addTearDown(() => controller.dispose());
-      await controller.initStorage();
+    test(
+      '6. Logout clears all sensitive state and prevents data leaks',
+      () async {
+        final controller = AppStateController();
+        addTearDown(() => controller.dispose());
+        await controller.initStorage();
 
-      // Log in as Admin and load sample data
-      controller.loginAsAdmin();
-      controller.loadSampleDemoData();
+        // Log in as Admin and load sample data
+        controller.loginAsAdmin();
+        controller.loadSampleDemoData();
 
-      expect(controller.isAuthenticated, isTrue);
-      expect(controller.tasks.isNotEmpty, isTrue);
-      expect(controller.sops.isNotEmpty, isTrue);
-      expect(controller.messages.isNotEmpty, isTrue);
+        expect(controller.isAuthenticated, isTrue);
+        expect(controller.tasks.isNotEmpty, isTrue);
+        expect(controller.sops.isNotEmpty, isTrue);
+        expect(controller.messages.isNotEmpty, isTrue);
 
-      // Perform secure logout
-      await controller.logout();
+        // Perform secure logout
+        await controller.logout();
 
-      // Session must be terminated
-      expect(controller.isAuthenticated, isFalse);
-      expect(controller.currentEmployee, isNull);
+        // Session must be terminated
+        expect(controller.isAuthenticated, isFalse);
+        expect(controller.currentEmployee, isNull);
 
-      // In-memory sensitive corporate data must be completely flushed
-      expect(controller.tasks.isEmpty, isTrue);
-      expect(controller.sops.isEmpty, isTrue);
-      expect(controller.employees.isEmpty, isTrue);
-      expect(controller.messages.isEmpty, isTrue);
-      expect(controller.notifications.isEmpty, isTrue);
-    });
+        // In-memory sensitive corporate data must be completely flushed
+        expect(controller.tasks.isEmpty, isTrue);
+        expect(controller.sops.isEmpty, isTrue);
+        expect(controller.employees.isEmpty, isTrue);
+        expect(controller.messages.isEmpty, isTrue);
+        expect(controller.notifications.isEmpty, isTrue);
+      },
+    );
 
-    test('7. AuthService provides safe error messages without internal leak', () {
-      expect(
-        AuthService.getReadableAuthError(Exception('Random crash')),
-        'Terjadi kendala autentikasi. Silakan coba kembali.',
-      );
-    });
+    test(
+      '7. AuthService provides safe error messages without internal leak',
+      () {
+        expect(
+          AuthService.getReadableAuthError(Exception('Random crash')),
+          'Terjadi kendala autentikasi. Silakan coba kembali.',
+        );
+      },
+    );
   });
 }

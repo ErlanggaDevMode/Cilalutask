@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 
 class CustomAvatar extends StatelessWidget {
@@ -40,7 +41,11 @@ class CustomAvatar extends StatelessWidget {
 
   static String getInitials(String name) {
     if (name.trim().isEmpty) return 'U';
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final parts = name
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((p) => p.isNotEmpty)
+        .toList();
     if (parts.isEmpty) return 'U';
     if (parts.length == 1) {
       final single = parts[0];
@@ -53,7 +58,9 @@ class CustomAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initials = getInitials(fallbackText);
     final gradientColors = customGradient ?? getGradientForName(fallbackText);
-    final hasValidUrl = imageUrl.trim().startsWith('http://') || imageUrl.trim().startsWith('https://');
+    final hasValidUrl =
+        imageUrl.trim().startsWith('http://') ||
+        imageUrl.trim().startsWith('https://');
 
     Widget avatarCircle = Container(
       width: radius * 2,
@@ -76,7 +83,8 @@ class CustomAvatar extends StatelessWidget {
                 width: radius * 2,
                 height: radius * 2,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => _buildInitialsWidget(initials, gradientColors),
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildInitialsWidget(initials, gradientColors),
                 loadingBuilder: (context, child, loadingProgress) {
                   if (loadingProgress == null) return child;
                   return _buildInitialsWidget(initials, gradientColors);

@@ -17,6 +17,9 @@ class FirestoreService {
   factory FirestoreService() => _instance ??= FirestoreService._();
   FirestoreService._();
 
+  @visibleForTesting
+  FirestoreService.forTesting();
+
   FirebaseFirestore? _db;
   bool _isAvailable = false;
   bool get isAvailable => _isAvailable;
@@ -151,7 +154,9 @@ class FirestoreService {
       );
     }
     try {
-      await _tasksRef(companyCode).doc(task.id).set(task.toMap(), SetOptions(merge: true));
+      await _tasksRef(companyCode)
+          .doc(task.id)
+          .set(task.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw _mapError(e);
     }
@@ -171,11 +176,13 @@ class FirestoreService {
     }
   }
 
-  Future<List<Task>> loadTasks(String companyCode) async {
+  Future<List<Task>> loadTasks(String companyCode, {int limit = 100}) async {
     if (!_isAvailable || _db == null) return [];
     try {
-      final snap = await _tasksRef(companyCode).get();
-      return snap.docs.map((doc) => Task.fromMap(DataParser.parseMap(doc.data()))).toList();
+      final snap = await _tasksRef(companyCode).limit(limit).get();
+      return snap.docs
+          .map((doc) => Task.fromMap(DataParser.parseMap(doc.data())))
+          .toList();
     } catch (e) {
       throw _mapError(e);
     }
@@ -223,7 +230,9 @@ class FirestoreService {
       );
     }
     try {
-      await _sopsRef(companyCode).doc(sop.id).set(sop.toMap(), SetOptions(merge: true));
+      await _sopsRef(companyCode)
+          .doc(sop.id)
+          .set(sop.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw _mapError(e);
     }
@@ -297,7 +306,9 @@ class FirestoreService {
       );
     }
     try {
-      await _membersRef(companyCode).doc(member.id).set(member.toMap(), SetOptions(merge: true));
+      await _membersRef(companyCode)
+          .doc(member.id)
+          .set(member.toMap(), SetOptions(merge: true));
     } catch (e) {
       throw _mapError(e);
     }
@@ -415,14 +426,18 @@ class FirestoreService {
     }
   }
 
-  Future<List<ChatMessage>> loadMessages(String companyCode, {String? channelId}) async {
+  Future<List<ChatMessage>> loadMessages(
+    String companyCode, {
+    String? channelId,
+    int limit = 50,
+  }) async {
     if (!_isAvailable || _db == null) return [];
     try {
       Query<Map<String, dynamic>> query = _messagesRef(companyCode);
       if (channelId != null) {
         query = query.where('channelId', isEqualTo: channelId);
       }
-      final snap = await query.orderBy('timestamp').get();
+      final snap = await query.orderBy('timestamp').limit(limit).get();
       return snap.docs
           .map((doc) => ChatMessage.fromMap(DataParser.parseMap(doc.data())))
           .toList();
@@ -431,8 +446,12 @@ class FirestoreService {
     }
   }
 
-  /// Listen to real-time chat messages
-  Stream<List<ChatMessage>> messagesStream(String companyCode, {String? channelId}) {
+  /// Listen to real-time chat messages with bounded limit
+  Stream<List<ChatMessage>> messagesStream(
+    String companyCode, {
+    String? channelId,
+    int limit = 50,
+  }) {
     if (!_isAvailable || _db == null) return const Stream.empty();
     Query<Map<String, dynamic>> query = _messagesRef(companyCode);
     if (channelId != null) {
@@ -440,10 +459,15 @@ class FirestoreService {
     }
     return query
         .orderBy('timestamp')
+        .limit(limit)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((doc) => ChatMessage.fromMap(DataParser.parseMap(doc.data())))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map(
+                (doc) => ChatMessage.fromMap(DataParser.parseMap(doc.data())),
+              )
+              .toList(),
+        );
   }
 
   // ───────────────────────────────────────────────────
@@ -480,9 +504,9 @@ class FirestoreService {
       );
     }
     try {
-      await _joinRequestsRef(companyCode).doc(requestId).update({
-        'status': status.name,
-      });
+      await _joinRequestsRef(companyCode)
+          .doc(requestId)
+          .update({'status': status.name});
     } catch (e) {
       throw _mapError(e);
     }
@@ -537,7 +561,10 @@ class FirestoreService {
       batch.set(_membersRef(companyCode).doc(member.id), member.toMap());
       // 3. Post notification
       if (welcomeNotif != null) {
-        batch.set(_notifsRef(companyCode).doc(welcomeNotif.id), welcomeNotif.toMap());
+        batch.set(
+          _notifsRef(companyCode).doc(welcomeNotif.id),
+          welcomeNotif.toMap(),
+        );
       }
       await batch.commit();
     } catch (e) {
@@ -547,9 +574,11 @@ class FirestoreService {
 
   Stream<List<JoinRequest>> joinRequestsStream(String companyCode) {
     if (!_isAvailable || _db == null) return const Stream.empty();
-    return _joinRequestsRef(companyCode).snapshots().map((snap) => snap.docs
-        .map((doc) => JoinRequest.fromMap(DataParser.parseMap(doc.data())))
-        .toList());
+    return _joinRequestsRef(companyCode).snapshots().map(
+      (snap) => snap.docs
+          .map((doc) => JoinRequest.fromMap(DataParser.parseMap(doc.data())))
+          .toList(),
+    );
   }
 
   // ───────────────────────────────────────────────────
@@ -559,7 +588,10 @@ class FirestoreService {
   CollectionReference<Map<String, dynamic>> _notifsRef(String companyCode) =>
       _companiesRef.doc(companyCode).collection('notifications');
 
-  Future<void> saveNotification(String companyCode, NotificationItem notif) async {
+  Future<void> saveNotification(
+    String companyCode,
+    NotificationItem notif,
+  ) async {
     if (!_isAvailable || _db == null) return;
     try {
       await _notifsRef(companyCode).doc(notif.id).set(notif.toMap());
@@ -577,7 +609,10 @@ class FirestoreService {
     }
   }
 
-  Future<void> clearNotifications(String companyCode, List<String> notifIds) async {
+  Future<void> clearNotifications(
+    String companyCode,
+    List<String> notifIds,
+  ) async {
     if (!_isAvailable || _db == null || notifIds.isEmpty) return;
     try {
       final batch = _db!.batch();
@@ -590,12 +625,17 @@ class FirestoreService {
     }
   }
 
-  Future<List<NotificationItem>> loadNotifications(String companyCode) async {
+  Future<List<NotificationItem>> loadNotifications(
+    String companyCode, {
+    int limit = 50,
+  }) async {
     if (!_isAvailable || _db == null) return [];
     try {
-      final snap = await _notifsRef(companyCode).get();
+      final snap = await _notifsRef(companyCode).limit(limit).get();
       return snap.docs
-          .map((doc) => NotificationItem.fromMap(DataParser.parseMap(doc.data())))
+          .map(
+            (doc) => NotificationItem.fromMap(DataParser.parseMap(doc.data())),
+          )
           .toList();
     } catch (e) {
       throw _mapError(e);
@@ -604,8 +644,12 @@ class FirestoreService {
 
   Stream<List<NotificationItem>> notificationsStream(String companyCode) {
     if (!_isAvailable || _db == null) return const Stream.empty();
-    return _notifsRef(companyCode).snapshots().map((snap) => snap.docs
-        .map((doc) => NotificationItem.fromMap(DataParser.parseMap(doc.data())))
-        .toList());
+    return _notifsRef(companyCode).snapshots().map(
+      (snap) => snap.docs
+          .map(
+            (doc) => NotificationItem.fromMap(DataParser.parseMap(doc.data())),
+          )
+          .toList(),
+    );
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
 import '../../models/company.dart';
 import '../../state/app_state_controller.dart';
 import '../../state/app_state_scope.dart';
@@ -26,7 +28,11 @@ class JoinRequestsBottomSheet extends StatelessWidget {
     final state = AppStateScope.of(context);
     final pendingRequests = state.pendingJoinRequests;
     final allCompanyRequests = state.joinRequests
-        .where((r) => r.companyCode.toUpperCase() == state.currentCompany.code.toUpperCase())
+        .where(
+          (r) =>
+              r.companyCode.toUpperCase() ==
+              state.currentCompany.code.toUpperCase(),
+        )
         .toList();
     final pastRequests = allCompanyRequests
         .where((r) => r.status != JoinRequestStatus.pending)
@@ -94,7 +100,10 @@ class JoinRequestsBottomSheet extends StatelessWidget {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  color: AppColors.textSecondary,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ],
@@ -134,7 +143,14 @@ class JoinRequestsBottomSheet extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        ...pendingRequests.map((req) => _buildRequestCard(context, state, req, isPending: true)),
+                        ...pendingRequests.map(
+                          (req) => _buildRequestCard(
+                            context,
+                            state,
+                            req,
+                            isPending: true,
+                          ),
+                        ),
                         const SizedBox(height: 16),
                       ],
 
@@ -148,7 +164,14 @@ class JoinRequestsBottomSheet extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
-                        ...pastRequests.map((req) => _buildRequestCard(context, state, req, isPending: false)),
+                        ...pastRequests.map(
+                          (req) => _buildRequestCard(
+                            context,
+                            state,
+                            req,
+                            isPending: false,
+                          ),
+                        ),
                       ],
                     ],
                   ),
@@ -202,7 +225,9 @@ class JoinRequestsBottomSheet extends StatelessWidget {
               Clipboard.setData(ClipboardData(text: companyCode));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Kode Perusahaan $companyCode berhasil disalin!'),
+                  content: Text(
+                    'Kode Perusahaan $companyCode berhasil disalin!',
+                  ),
                   backgroundColor: AppColors.primary,
                   duration: const Duration(seconds: 2),
                 ),
@@ -214,7 +239,9 @@ class JoinRequestsBottomSheet extends StatelessWidget {
               backgroundColor: AppColors.primary,
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
           ),
         ],
@@ -231,14 +258,14 @@ class JoinRequestsBottomSheet extends StatelessWidget {
     final statusColor = req.status == JoinRequestStatus.approved
         ? AppColors.success
         : req.status == JoinRequestStatus.rejected
-            ? AppColors.danger
-            : AppColors.warning;
+        ? AppColors.danger
+        : AppColors.warning;
 
     final statusText = req.status == JoinRequestStatus.approved
         ? 'Diterima'
         : req.status == JoinRequestStatus.rejected
-            ? 'Ditolak'
-            : 'Menunggu Persetujuan';
+        ? 'Ditolak'
+        : 'Menunggu Persetujuan';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -319,22 +346,46 @@ class JoinRequestsBottomSheet extends StatelessWidget {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      state.rejectJoinRequest(req.id);
-                      HapticFeedback.lightImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Permintaan ${req.userName} ditolak.'),
-                          backgroundColor: AppColors.danger,
-                        ),
+                    onPressed: () async {
+                      final confirmed = await AppConfirmDialog.show(
+                        context,
+                        title: 'Tolak Permintaan?',
+                        message:
+                            'Apakah Anda yakin ingin menolak permohonan bergabung dari ${req.userName}?',
+                        confirmLabel: 'Tolak Permohonan',
+                        cancelLabel: 'Batal',
+                        isDestructive: true,
+                        icon: Icons.person_remove_rounded,
                       );
+                      if (confirmed && context.mounted) {
+                        state.rejectJoinRequest(req.id);
+                        HapticFeedback.lightImpact();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Permintaan ${req.userName} ditolak.',
+                            ),
+                            backgroundColor: AppColors.danger,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                     },
-                    icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.danger),
-                    label: const Text('Tolak', style: TextStyle(color: AppColors.danger, fontSize: 12)),
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.danger,
+                    ),
+                    label: const Text(
+                      'Tolak',
+                      style: TextStyle(color: AppColors.danger, fontSize: 12),
+                    ),
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(color: AppColors.dangerBorder),
                       backgroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),
@@ -347,16 +398,31 @@ class JoinRequestsBottomSheet extends StatelessWidget {
                       HapticFeedback.mediumImpact();
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('✅ ${req.userName} resmi bergabung ke tim!'),
+                          content: Text(
+                            '✅ ${req.userName} resmi bergabung ke tim!',
+                          ),
                           backgroundColor: AppColors.success,
                         ),
                       );
                     },
-                    icon: const Icon(Icons.check_rounded, size: 16, color: Colors.white),
-                    label: const Text('Terima (Accept)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                    icon: const Icon(
+                      Icons.check_rounded,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    label: const Text(
+                      'Terima (Accept)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.success,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 8),
                     ),
                   ),

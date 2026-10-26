@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/custom_avatar.dart';
+import '../../core/widgets/app_confirm_dialog.dart';
 import '../../models/employee.dart';
 import '../../state/app_state_controller.dart';
 import '../../state/app_state_scope.dart';
@@ -9,10 +11,7 @@ import '../../state/app_state_scope.dart';
 class ProfileBottomSheet extends StatelessWidget {
   final CurrentUser? currentUser;
 
-  const ProfileBottomSheet({
-    super.key,
-    this.currentUser,
-  });
+  const ProfileBottomSheet({super.key, this.currentUser});
 
   static Future<void> show(BuildContext context, {CurrentUser? currentUser}) {
     return showModalBottomSheet<void>(
@@ -76,7 +75,11 @@ class ProfileBottomSheet extends StatelessWidget {
               ),
               const Spacer(),
               IconButton(
-                icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 20,
+                  color: AppColors.textMuted,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
                 visualDensity: VisualDensity.compact,
               ),
@@ -89,9 +92,15 @@ class ProfileBottomSheet extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isAdmin ? AppColors.primaryLight.withValues(alpha: 0.5) : const Color(0xFFECFDF5),
+              color: isAdmin
+                  ? AppColors.primaryLight.withValues(alpha: 0.5)
+                  : const Color(0xFFECFDF5),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: isAdmin ? AppColors.primaryBorder : const Color(0xFFA7F3D0)),
+              border: Border.all(
+                color: isAdmin
+                    ? AppColors.primaryBorder
+                    : const Color(0xFFA7F3D0),
+              ),
             ),
             child: Row(
               children: [
@@ -101,20 +110,31 @@ class ProfileBottomSheet extends StatelessWidget {
                       imageUrl: userAvatar,
                       fallbackText: userName,
                       radius: 26,
-                      borderColor: isAdmin ? AppColors.primary : AppColors.successDark,
+                      borderColor: isAdmin
+                          ? AppColors.primary
+                          : AppColors.successDark,
                     ),
                     Positioned(
                       right: 0,
                       bottom: 0,
                       child: InkWell(
-                        onTap: () => _showEditAvatarSheet(context, state, userName, userAvatar),
+                        onTap: () => _showEditAvatarSheet(
+                          context,
+                          state,
+                          userName,
+                          userAvatar,
+                        ),
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: const BoxDecoration(
                             color: AppColors.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.edit, size: 10, color: Colors.white),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 10,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     ),
@@ -137,9 +157,14 @@ class ProfileBottomSheet extends StatelessWidget {
                       Row(
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
-                              color: isAdmin ? AppColors.primaryLight : const Color(0xFFD1FAE5),
+                              color: isAdmin
+                                  ? AppColors.primaryLight
+                                  : const Color(0xFFD1FAE5),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
@@ -147,7 +172,9 @@ class ProfileBottomSheet extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w900,
-                                color: isAdmin ? AppColors.primary : const Color(0xFF047857),
+                                color: isAdmin
+                                    ? AppColors.primary
+                                    : const Color(0xFF047857),
                                 letterSpacing: 0.5,
                               ),
                             ),
@@ -157,7 +184,10 @@ class ProfileBottomSheet extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         userEmail,
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -184,11 +214,19 @@ class ProfileBottomSheet extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.corporate_fare_rounded, size: 16, color: AppColors.primary),
+                        const Icon(
+                          Icons.corporate_fare_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           company.name,
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ],
                     ),
@@ -197,13 +235,18 @@ class ProfileBottomSheet extends StatelessWidget {
                         Clipboard.setData(ClipboardData(text: company.code));
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('ID Perusahaan ${company.code} berhasil disalin!'),
+                            content: Text(
+                              'ID Perusahaan ${company.code} berhasil disalin!',
+                            ),
                             backgroundColor: AppColors.primary,
                           ),
                         );
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
                         decoration: BoxDecoration(
                           color: AppColors.primaryLight,
                           borderRadius: BorderRadius.circular(6),
@@ -212,10 +255,18 @@ class ProfileBottomSheet extends StatelessWidget {
                           children: [
                             Text(
                               company.code,
-                              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.copy_rounded, size: 10, color: AppColors.primary),
+                            const Icon(
+                              Icons.copy_rounded,
+                              size: 10,
+                              color: AppColors.primary,
+                            ),
                           ],
                         ),
                       ),
@@ -225,7 +276,10 @@ class ProfileBottomSheet extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Industri: ${company.industry}',
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -248,7 +302,11 @@ class ProfileBottomSheet extends StatelessWidget {
                     color: AppColors.primaryLight,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.palette_outlined, color: AppColors.primary, size: 18),
+                  child: const Icon(
+                    Icons.palette_outlined,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -265,24 +323,43 @@ class ProfileBottomSheet extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        userAvatar.isEmpty ? 'Aktif: Inisial Nama ($userName)' : 'Aktif: Foto Profil Kustom',
-                        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        userAvatar.isEmpty
+                            ? 'Aktif: Inisial Nama ($userName)'
+                            : 'Aktif: Foto Profil Kustom',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textSecondary,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
                 OutlinedButton(
-                  onPressed: () => _showEditAvatarSheet(context, state, userName, userAvatar),
+                  onPressed: () => _showEditAvatarSheet(
+                    context,
+                    state,
+                    userName,
+                    userAvatar,
+                  ),
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     side: const BorderSide(color: AppColors.primaryBorder),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     visualDensity: VisualDensity.compact,
                   ),
                   child: const Text(
                     'Ubah (Opsional)',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -296,11 +373,26 @@ class ProfileBottomSheet extends StatelessWidget {
               // Logout / Ganti Akun
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    state.logout();
+                  onPressed: () async {
+                    final confirmed = await AppConfirmDialog.show(
+                      context,
+                      title: 'Keluar dari Akun?',
+                      message: 'Anda akan keluar dari sesi akun ini dan kembali ke halaman login.',
+                      confirmLabel: 'Ya, Keluar',
+                      cancelLabel: 'Batal',
+                      isDestructive: true,
+                      icon: Icons.logout_rounded,
+                    );
+                    if (confirmed && context.mounted) {
+                      Navigator.of(context).pop();
+                      state.logout();
+                    }
                   },
-                  icon: const Icon(Icons.logout_rounded, size: 16, color: AppColors.danger),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    size: 16,
+                    color: AppColors.danger,
+                  ),
                   label: const Text(
                     'Keluar / Ganti Akun',
                     style: TextStyle(
@@ -313,7 +405,9 @@ class ProfileBottomSheet extends StatelessWidget {
                     side: const BorderSide(color: AppColors.dangerBorder),
                     backgroundColor: const Color(0xFFFEF2F2),
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
@@ -323,10 +417,22 @@ class ProfileBottomSheet extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Tutup', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                child: const Text(
+                  'Tutup',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
             ],
           ),
@@ -397,7 +503,11 @@ class ProfileBottomSheet extends StatelessWidget {
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textMuted),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            size: 20,
+                            color: AppColors.textMuted,
+                          ),
                           onPressed: () => Navigator.of(context).pop(),
                           visualDensity: VisualDensity.compact,
                         ),
@@ -418,7 +528,10 @@ class ProfileBottomSheet extends StatelessWidget {
                             selectedAvatar.isEmpty
                                 ? 'Pratinjau: Inisial Nama (${CustomAvatar.getInitials(userName)})'
                                 : 'Pratinjau: Foto Terpilih',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -434,12 +547,19 @@ class ProfileBottomSheet extends StatelessWidget {
                       },
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: selectedAvatar.isEmpty ? AppColors.primaryLight : AppColors.surfaceSecondary,
+                          color: selectedAvatar.isEmpty
+                              ? AppColors.primaryLight
+                              : AppColors.surfaceSecondary,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: selectedAvatar.isEmpty ? AppColors.primary : AppColors.border,
+                            color: selectedAvatar.isEmpty
+                                ? AppColors.primary
+                                : AppColors.border,
                           ),
                         ),
                         child: Row(
@@ -464,13 +584,20 @@ class ProfileBottomSheet extends StatelessWidget {
                                   ),
                                   Text(
                                     'Menampilkan inisial ${CustomAvatar.getInitials(userName)} dengan gradasi modern.',
-                                    style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      color: AppColors.textSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
                             ),
                             if (selectedAvatar.isEmpty)
-                              const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
                           ],
                         ),
                       ),
@@ -478,7 +605,11 @@ class ProfileBottomSheet extends StatelessWidget {
                     const SizedBox(height: 14),
                     const Text(
                       'Pilih Dari Foto Rekomendasi:',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -498,7 +629,9 @@ class ProfileBottomSheet extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: isChosen ? AppColors.primary : Colors.transparent,
+                                color: isChosen
+                                    ? AppColors.primary
+                                    : Colors.transparent,
                                 width: 2.5,
                               ),
                             ),
@@ -514,7 +647,11 @@ class ProfileBottomSheet extends StatelessWidget {
                     const SizedBox(height: 14),
                     const Text(
                       'Atau Input Link Foto (URL Web):',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     TextField(
@@ -522,14 +659,24 @@ class ProfileBottomSheet extends StatelessWidget {
                       style: const TextStyle(fontSize: 12),
                       decoration: InputDecoration(
                         hintText: 'https://images.unsplash.com/...',
-                        hintStyle: const TextStyle(fontSize: 12, color: AppColors.textMuted),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        hintStyle: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(color: AppColors.border),
                         ),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.check_rounded, size: 18, color: AppColors.primary),
+                          icon: const Icon(
+                            Icons.check_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
                           onPressed: () {
                             setModalState(() {
                               selectedAvatar = urlController.text.trim();
@@ -562,9 +709,14 @@ class ProfileBottomSheet extends StatelessWidget {
                           backgroundColor: AppColors.primary,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        child: const Text('Simpan Foto Profil', style: TextStyle(fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'Simpan Foto Profil',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
                       ),
                     ),
                   ],

@@ -11,7 +11,9 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
-  testWidgets('Cilalutask initial launch shows LoginScreen with 3 tabs', (WidgetTester tester) async {
+  testWidgets('Cilalutask initial launch shows LoginScreen with 3 tabs', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -31,7 +33,9 @@ void main() {
     expect(find.text('Masuk sebagai Admin'), findsWidgets);
   });
 
-  testWidgets('Logging in as Admin shows 6 navigation tabs including Chat', (WidgetTester tester) async {
+  testWidgets('Logging in as Admin shows 6 navigation tabs including Chat', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -65,7 +69,9 @@ void main() {
     expect(find.text('Tim'), findsWidgets);
   });
 
-  testWidgets('Logging in as User/Karyawan has user role permissions', (WidgetTester tester) async {
+  testWidgets('Logging in as User/Karyawan has user role permissions', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -105,71 +111,79 @@ void main() {
     expect(find.text('#umum'), findsOneWidget);
   });
 
-  test('Multi-Company: Company registration starts in pure blank state', () async {
-    final controller = AppStateController();
-    addTearDown(() => controller.dispose());
-    expect(controller.currentCompany.code, 'CILALU-88');
+  test(
+    'Multi-Company: Company registration starts in pure blank state',
+    () async {
+      final controller = AppStateController();
+      addTearDown(() => controller.dispose());
+      expect(controller.currentCompany.code, 'CILALU-88');
 
-    // Register a new company
-    await controller.registerCompany(
-      name: 'PT Sinergi Abadi',
-      code: 'SINERGI-01',
-      adminName: 'Bambang Sudiro',
-      adminEmail: 'bambang@sinergi.id',
-      adminPassword: 'password123',
-      industry: 'Logistik & Distribusi',
-    );
+      // Register a new company
+      await controller.registerCompany(
+        name: 'PT Sinergi Abadi',
+        code: 'SINERGI-01',
+        adminName: 'Bambang Sudiro',
+        adminEmail: 'bambang@sinergi.id',
+        adminPassword: 'password123',
+        industry: 'Logistik & Distribusi',
+      );
 
-    expect(controller.currentCompany.name, 'PT Sinergi Abadi');
-    expect(controller.currentCompany.code, 'SINERGI-01');
-    expect(controller.isAdmin, isTrue);
-    expect(controller.isBlankMode, isTrue);
-    // Tasks, sops, and employees should start completely blank
-    expect(controller.tasks.isEmpty, isTrue);
-    expect(controller.sops.isEmpty, isTrue);
-    expect(controller.employees.isEmpty, isTrue);
-  });
+      expect(controller.currentCompany.name, 'PT Sinergi Abadi');
+      expect(controller.currentCompany.code, 'SINERGI-01');
+      expect(controller.isAdmin, isTrue);
+      expect(controller.isBlankMode, isTrue);
+      // Tasks, sops, and employees should start completely blank
+      expect(controller.tasks.isEmpty, isTrue);
+      expect(controller.sops.isEmpty, isTrue);
+      expect(controller.employees.isEmpty, isTrue);
+    },
+  );
 
-  test('Join Company Flow: Employee requests with Company ID, Admin accepts', () async {
-    final controller = AppStateController();
-    addTearDown(() => controller.dispose());
+  test(
+    'Join Company Flow: Employee requests with Company ID, Admin accepts',
+    () async {
+      final controller = AppStateController();
+      addTearDown(() => controller.dispose());
 
-    // Register a fresh company
-    await controller.registerCompany(
-      name: 'PT Nusantara Prima',
-      code: 'NUSANTARA-99',
-      adminName: 'Hendra Gunawan',
-      adminEmail: 'hendra@nusantara.id',
-      adminPassword: 'pass',
-    );
+      // Register a fresh company
+      await controller.registerCompany(
+        name: 'PT Nusantara Prima',
+        code: 'NUSANTARA-99',
+        adminName: 'Hendra Gunawan',
+        adminEmail: 'hendra@nusantara.id',
+        adminPassword: 'pass',
+      );
 
-    expect(controller.pendingJoinRequestsCount, 0);
+      expect(controller.pendingJoinRequestsCount, 0);
 
-    // Prospective employee submits join request with Company ID
-    final req = await controller.submitJoinRequest(
-      companyCode: 'NUSANTARA-99',
-      name: 'Ahmad Fauzi',
-      email: 'ahmad@gmail.com',
-      password: 'password123',
-      division: 'IT & Engineering',
-      role: 'Mobile Developer',
-    );
+      // Prospective employee submits join request with Company ID
+      final req = await controller.submitJoinRequest(
+        companyCode: 'NUSANTARA-99',
+        name: 'Ahmad Fauzi',
+        email: 'ahmad@gmail.com',
+        password: 'password123',
+        division: 'IT & Engineering',
+        role: 'Mobile Developer',
+      );
 
-    expect(req.status, JoinRequestStatus.pending);
-    expect(controller.pendingJoinRequestsCount, 1);
-    expect(controller.pendingJoinRequests.first.userName, 'Ahmad Fauzi');
-    expect(controller.employees.isEmpty, isTrue);
+      expect(req.status, JoinRequestStatus.pending);
+      expect(controller.pendingJoinRequestsCount, 1);
+      expect(controller.pendingJoinRequests.first.userName, 'Ahmad Fauzi');
+      expect(controller.employees.isEmpty, isTrue);
 
-    // Admin reviews and accepts the request
-    await controller.acceptJoinRequest(req.id);
+      // Admin reviews and accepts the request
+      await controller.acceptJoinRequest(req.id);
 
-    expect(controller.pendingJoinRequestsCount, 0);
-    expect(controller.employees.length, 1);
-    expect(controller.employees.first.name, 'Ahmad Fauzi');
-    expect(controller.employees.first.role, 'Mobile Developer');
-  });
+      expect(controller.pendingJoinRequestsCount, 0);
+      expect(controller.employees.length, 1);
+      expect(controller.employees.first.name, 'Ahmad Fauzi');
+      expect(controller.employees.first.role, 'Mobile Developer');
+    },
+  );
 
-  testWidgets('Real-time notification engine triggers heads-up banner', (WidgetTester tester) async {
+  testWidgets('Real-time notification engine triggers heads-up banner', (
+    WidgetTester tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1200);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() {
@@ -237,7 +251,10 @@ void main() {
     // Verify in controller 1
     expect(controller1.currentCompany.code, 'MAJU-77');
     expect(controller1.currentCompany.name, 'PT Maju Bersama');
-    expect(controller1.messages.any((m) => m.content.contains('internal')), isTrue);
+    expect(
+      controller1.messages.any((m) => m.content.contains('internal')),
+      isTrue,
+    );
 
     // 2. Simulate app kill & fresh restart with Controller 2
     final controller2 = AppStateController();
@@ -247,7 +264,12 @@ void main() {
     expect(controller2.currentCompany.code, 'MAJU-77');
     expect(controller2.currentCompany.name, 'PT Maju Bersama');
     expect(controller2.currentCompany.adminName, 'Budi Santoso');
-    expect(controller2.messages.any((m) => m.content == 'Selamat datang di server internal!'), isTrue);
+    expect(
+      controller2.messages.any(
+        (m) => m.content == 'Selamat datang di server internal!',
+      ),
+      isTrue,
+    );
 
     controller1.dispose();
     controller2.dispose();

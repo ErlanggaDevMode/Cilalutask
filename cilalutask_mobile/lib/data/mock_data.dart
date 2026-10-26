@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/employee.dart';
 import '../models/task.dart';
 import '../models/sop.dart';
@@ -89,12 +90,36 @@ final List<Task> kInitialTasks = [
     needsReview: true,
     assignee: kEmployees[0],
     subtasks: const [
-      Subtask(id: 'sub-1', title: 'Backup full dump database PostgreSQL', completed: true),
-      Subtask(id: 'sub-2', title: 'Konfigurasi replication slot AWS DMS', completed: true),
-      Subtask(id: 'sub-3', title: 'Uji stress test throughput 10k RPS', completed: true),
-      Subtask(id: 'sub-4', title: 'Validasi integritas checksum transaksi', completed: true),
-      Subtask(id: 'sub-5', title: 'Simulasi auto-failover cluster multi-AZ', completed: false),
-      Subtask(id: 'sub-6', title: 'Dokumentasi SOP pemulihan darurat', completed: false),
+      Subtask(
+        id: 'sub-1',
+        title: 'Backup full dump database PostgreSQL',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-2',
+        title: 'Konfigurasi replication slot AWS DMS',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-3',
+        title: 'Uji stress test throughput 10k RPS',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-4',
+        title: 'Validasi integritas checksum transaksi',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-5',
+        title: 'Simulasi auto-failover cluster multi-AZ',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-6',
+        title: 'Dokumentasi SOP pemulihan darurat',
+        completed: false,
+      ),
     ],
   ),
   Task(
@@ -109,11 +134,31 @@ final List<Task> kInitialTasks = [
     progressPercent: 40,
     assignee: kEmployees[1],
     subtasks: const [
-      Subtask(id: 'sub-201', title: 'Draft copy headline promo & CTA voucher', completed: true),
-      Subtask(id: 'sub-202', title: 'Desain visual master banner 3 format', completed: true),
-      Subtask(id: 'sub-203', title: 'Kirim brief 5 Key Opinion Leaders (KOL)', completed: false),
-      Subtask(id: 'sub-204', title: 'Review script video edukasi TikTok', completed: false),
-      Subtask(id: 'sub-205', title: 'Pengaturan jadwal email blast Mailchimp', completed: false),
+      Subtask(
+        id: 'sub-201',
+        title: 'Draft copy headline promo & CTA voucher',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-202',
+        title: 'Desain visual master banner 3 format',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-203',
+        title: 'Kirim brief 5 Key Opinion Leaders (KOL)',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-204',
+        title: 'Review script video edukasi TikTok',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-205',
+        title: 'Pengaturan jadwal email blast Mailchimp',
+        completed: false,
+      ),
     ],
   ),
   Task(
@@ -129,14 +174,46 @@ final List<Task> kInitialTasks = [
     progressPercent: 88,
     assignee: kEmployees[2],
     subtasks: const [
-      Subtask(id: 'sub-301', title: 'Pengecekan rack A1 sampai A12 modul TV', completed: true),
-      Subtask(id: 'sub-302', title: 'Scanning barcode serial number AC & Kulkas', completed: true),
-      Subtask(id: 'sub-303', title: 'Validasi barang retur & karantina', completed: true),
-      Subtask(id: 'sub-304', title: 'Pemeriksaan segel kemasan pallet transit', completed: true),
-      Subtask(id: 'sub-305', title: 'Rekap selisih fisik vs sistem warehouse', completed: true),
-      Subtask(id: 'sub-306', title: 'Foto dokumentasi kondisi fisik gudang', completed: true),
-      Subtask(id: 'sub-307', title: 'Verifikasi tanda tangan kepala logistik', completed: true),
-      Subtask(id: 'sub-308', title: 'Input berita acara serah terima ke portal', completed: false),
+      Subtask(
+        id: 'sub-301',
+        title: 'Pengecekan rack A1 sampai A12 modul TV',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-302',
+        title: 'Scanning barcode serial number AC & Kulkas',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-303',
+        title: 'Validasi barang retur & karantina',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-304',
+        title: 'Pemeriksaan segel kemasan pallet transit',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-305',
+        title: 'Rekap selisih fisik vs sistem warehouse',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-306',
+        title: 'Foto dokumentasi kondisi fisik gudang',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-307',
+        title: 'Verifikasi tanda tangan kepala logistik',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-308',
+        title: 'Input berita acara serah terima ke portal',
+        completed: false,
+      ),
     ],
   ),
   Task(
@@ -153,10 +230,26 @@ final List<Task> kInitialTasks = [
     needsReview: true,
     assignee: kEmployees[3],
     subtasks: const [
-      Subtask(id: 'sub-401', title: 'Sinkronisasi billing faktur pajak masukan', completed: true),
-      Subtask(id: 'sub-402', title: 'Rekapitulasi withholding tax vendor jasa', completed: true),
-      Subtask(id: 'sub-403', title: 'Validasi NTPN bukti transfer bank Mandiri', completed: true),
-      Subtask(id: 'sub-404', title: 'Final upload file CSV ke DJP Online', completed: false),
+      Subtask(
+        id: 'sub-401',
+        title: 'Sinkronisasi billing faktur pajak masukan',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-402',
+        title: 'Rekapitulasi withholding tax vendor jasa',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-403',
+        title: 'Validasi NTPN bukti transfer bank Mandiri',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-404',
+        title: 'Final upload file CSV ke DJP Online',
+        completed: false,
+      ),
     ],
   ),
   Task(
@@ -171,11 +264,31 @@ final List<Task> kInitialTasks = [
     progressPercent: 40,
     assignee: kEmployees[0],
     subtasks: const [
-      Subtask(id: 'sub-501', title: 'Scan vulnerability port open Nessus', completed: true),
-      Subtask(id: 'sub-502', title: 'Audit list user root & privilege sudoers', completed: true),
-      Subtask(id: 'sub-503', title: 'Revoke token API key yang tidak aktif >90 hari', completed: false),
-      Subtask(id: 'sub-504', title: 'Pembaruan sertifikat wildcard LetsEncrypt', completed: false),
-      Subtask(id: 'sub-505', title: 'Laporan rekap insiden triwulan', completed: false),
+      Subtask(
+        id: 'sub-501',
+        title: 'Scan vulnerability port open Nessus',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-502',
+        title: 'Audit list user root & privilege sudoers',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-503',
+        title: 'Revoke token API key yang tidak aktif >90 hari',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-504',
+        title: 'Pembaruan sertifikat wildcard LetsEncrypt',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-505',
+        title: 'Laporan rekap insiden triwulan',
+        completed: false,
+      ),
     ],
   ),
   Task(
@@ -189,9 +302,21 @@ final List<Task> kInitialTasks = [
     progressPercent: 100,
     assignee: kEmployees[4],
     subtasks: const [
-      Subtask(id: 'sub-601', title: 'Cek delivery order surat jalan ekspedisi', completed: true),
-      Subtask(id: 'sub-602', title: 'Sampling kelembaban & ketahanan kain', completed: true),
-      Subtask(id: 'sub-603', title: 'Input kode batch barcode ke inventory ERP', completed: true),
+      Subtask(
+        id: 'sub-601',
+        title: 'Cek delivery order surat jalan ekspedisi',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-602',
+        title: 'Sampling kelembaban & ketahanan kain',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-603',
+        title: 'Input kode batch barcode ke inventory ERP',
+        completed: true,
+      ),
     ],
   ),
   Task(
@@ -205,9 +330,21 @@ final List<Task> kInitialTasks = [
     progressPercent: 100,
     assignee: kEmployees[5],
     subtasks: const [
-      Subtask(id: 'sub-701', title: 'Brainstorming palet warna & gaya ilustrasi', completed: true),
-      Subtask(id: 'sub-702', title: '3D packaging render di Blender', completed: true),
-      Subtask(id: 'sub-703', title: 'Approval final cetak dari Brand Manager', completed: true),
+      Subtask(
+        id: 'sub-701',
+        title: 'Brainstorming palet warna & gaya ilustrasi',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-702',
+        title: '3D packaging render di Blender',
+        completed: true,
+      ),
+      Subtask(
+        id: 'sub-703',
+        title: 'Approval final cetak dari Brand Manager',
+        completed: true,
+      ),
     ],
   ),
   Task(
@@ -221,9 +358,21 @@ final List<Task> kInitialTasks = [
     progressPercent: 0,
     assignee: kEmployees[3],
     subtasks: const [
-      Subtask(id: 'sub-801', title: 'Komparasi vendor forklift Toyota vs Yale', completed: false),
-      Subtask(id: 'sub-802', title: 'Hitung ROI & perkiraan penghematan energi', completed: false),
-      Subtask(id: 'sub-803', title: 'Penyusunan slide presentasi Direksi', completed: false),
+      Subtask(
+        id: 'sub-801',
+        title: 'Komparasi vendor forklift Toyota vs Yale',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-802',
+        title: 'Hitung ROI & perkiraan penghematan energi',
+        completed: false,
+      ),
+      Subtask(
+        id: 'sub-803',
+        title: 'Penyusunan slide presentasi Direksi',
+        completed: false,
+      ),
     ],
   ),
 ];

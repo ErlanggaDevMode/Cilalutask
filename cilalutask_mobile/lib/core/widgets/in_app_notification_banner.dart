@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../theme/app_colors.dart';
 import '../../models/notification_item.dart';
 import '../../state/app_state_scope.dart';
@@ -7,7 +8,8 @@ class InAppNotificationBanner extends StatefulWidget {
   const InAppNotificationBanner({super.key});
 
   @override
-  State<InAppNotificationBanner> createState() => _InAppNotificationBannerState();
+  State<InAppNotificationBanner> createState() =>
+      _InAppNotificationBannerState();
 }
 
 class _InAppNotificationBannerState extends State<InAppNotificationBanner>
@@ -25,19 +27,16 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
       duration: const Duration(milliseconds: 380),
     );
 
-    _offsetAnimation = Tween<Offset>(
-      begin: const Offset(0.0, -1.2),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInCubic,
-    ));
+    _offsetAnimation =
+        Tween<Offset>(begin: const Offset(0.0, -1.2), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _controller,
+            curve: Curves.easeOutBack,
+            reverseCurve: Curves.easeInCubic,
+          ),
+        );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
   }
 
   @override
@@ -150,7 +149,8 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
           opacity: _fadeAnimation,
           child: GestureDetector(
             onVerticalDragEnd: (details) {
-              if (details.primaryVelocity != null && details.primaryVelocity! < 0) {
+              if (details.primaryVelocity != null &&
+                  details.primaryVelocity! < 0) {
                 state.dismissActiveNotification();
               }
             },
@@ -165,11 +165,17 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
               color: Colors.transparent,
               elevation: 0,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: accentColor.withValues(alpha: 0.35), width: 1.2),
+                  border: Border.all(
+                    color: accentColor.withValues(alpha: 0.35),
+                    width: 1.2,
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: accentColor.withValues(alpha: 0.15),
@@ -208,7 +214,10 @@ class _InAppNotificationBannerState extends State<InAppNotificationBanner>
                           Row(
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
                                 decoration: BoxDecoration(
                                   color: accentColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(5),

@@ -71,8 +71,14 @@ void main() {
 
       await controller.acceptJoinRequest(req.id);
 
-      expect(controller.employees.any((e) => e.email == 'siti@cilalu.id'), isTrue);
-      expect(controller.pendingJoinRequests.any((r) => r.id == req.id), isFalse);
+      expect(
+        controller.employees.any((e) => e.email == 'siti@cilalu.id'),
+        isTrue,
+      );
+      expect(
+        controller.pendingJoinRequests.any((r) => r.id == req.id),
+        isFalse,
+      );
     });
 
     test('rejectJoinRequest updates status to rejected', () async {
