@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, BookOpen, ShieldCheck, Clock, Check, Share2, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, BookOpen, ShieldCheck, Check, Download, FileText } from 'lucide-react';
 import { SOPDocument } from '../../types';
 
 interface SopDetailModalProps {
@@ -9,13 +9,94 @@ interface SopDetailModalProps {
   onConfirmRead: (sopId: string) => void;
 }
 
+function buildSopPdfBlob(sop: SOPDocument): Blob {
+  const esc = (val: string) =>
+    val.replace(/[^\x20-\x7E]/g, ' ').replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
+
+  const lines: string[] = [
+    `DOKUMEN STANDAR OPERASIONAL PROSEDUR (SOP)`,
+    `Kode: ${sop.code} | Versi: ${sop.version} | Kategori: ${sop.category}`,
+    `Judul: ${sop.title}`,
+    `Terakhir Diperbarui: ${sop.lastUpdatedText}`,
+    `------------------------------------------------------------`,
+    `Ringkasan:`,
+    sop.description || 'Pedoman operasional standar.',
+    ``,
+  ];
+
+  (sop.contentSections || []).forEach((sec, idx) => {
+    lines.push(`${idx + 1}. ${sec.heading}`);
+    sec.items.forEach((item, itemIdx) => {
+      lines.push(`   ${idx + 1}.${itemIdx + 1} ${item}`);
+    });
+    lines.push('');
+  });
+
+  const contentOps: string[] = ['BT', '/F1 10 Tf', '50 790 Td', '14 TL'];
+  lines.slice(0, 48).forEach((line) => {
+    contentOps.push(`(${esc(line)}) Tj T*`);
+  });
+  contentOps.push('ET');
+  const stream = contentOps.join('\n');
+
+  const objects = [
+    '1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n',
+    '2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n',
+    '3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n',
+    `4 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj\n`,
+    '5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n',
+  ];
+
+  let pdf = '%PDF-1.4\n';
+  const offsets: number[] = [0];
+  for (const obj of objects) {
+    offsets.push(pdf.length);
+    pdf += obj;
+  }
+  const xrefStart = pdf.length;
+  pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`;
+  for (let i = 1; i < offsets.length; i++) {
+    pdf += `${String(offsets[i]).padStart(10, '0')} 00000 n \n`;
+  }
+  pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
+  return new Blob([pdf], { type: 'application/pdf' });
+}
+
 export const SopDetailModal: React.FC<SopDetailModalProps> = ({
   sop,
   isOpen,
   onClose,
   onConfirmRead,
 }) => {
+  const [downloadedNotice, setDownloadedNotice] = useState<string | null>(null);
+
   if (!isOpen || !sop) return null;
+
+  const handleDownloadSop = () => {
+    const safeName =
+      sop.attachmentFileName ||
+      `${sop.code.replace(/[^A-Za-z0-9_-]/g, '_')}_${sop.version.replace(/[^A-Za-z0-9._-]/g, '')}.pdf`;
+
+    if (sop.attachmentDataUrl) {
+      const a = document.createElement('a');
+      a.href = sop.attachmentDataUrl;
+      a.download = safeName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } else {
+      const blob = buildSopPdfBlob(sop);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = safeName.endsWith('.pdf') ? safeName : `${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+    setDownloadedNotice(`Berkas ${safeName} berhasil diunduh.`);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-xs p-0 sm:p-4">
@@ -56,6 +137,37 @@ export const SopDetailModal: React.FC<SopDetailModalProps> = ({
               {sop.lastUpdatedText} • Divisi Terkait
             </p>
           </div>
+
+          {/* Attachment Download Card */}
+          <div className="rounded-xl bg-blue-50/60 border border-blue-200/80 p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-lg bg-[#0051D5] text-white flex items-center justify-center shrink-0">
+                <FileText className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate">
+                  {sop.attachmentFileName || sop.fileInfo || `${sop.code}.pdf`}
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {sop.fileInfo || 'Dokumen Resmi PDF Siap Unduh'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleDownloadSop}
+              className="px-3 py-1.5 rounded-lg bg-[#0051D5] hover:bg-blue-700 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 shadow-xs transition-all"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Unduh PDF
+            </button>
+          </div>
+
+          {downloadedNotice && (
+            <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-[11px] font-semibold text-emerald-800">
+              {downloadedNotice}
+            </div>
+          )}
 
           {/* Description */}
           {sop.description && (
@@ -124,11 +236,10 @@ export const SopDetailModal: React.FC<SopDetailModalProps> = ({
                 onConfirmRead(sop.id);
                 onClose();
               }}
-              className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 ${
-                sop.isReadByMe
-                  ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
-                  : 'bg-[#0051D5] hover:bg-blue-700 shadow-blue-600/20'
-              }`}
+              className={`flex-1 py-2.5 rounded-xl text-white text-xs font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-1.5 ${sop.isReadByMe
+                ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20'
+                : 'bg-[#0051D5] hover:bg-blue-700 shadow-blue-600/20'
+                }`}
             >
               <Check className="w-4 h-4 stroke-[3]" />
               <span>{sop.isReadByMe ? 'Sudah Disetujui' : 'Saya Sudah Baca & Setuju'}</span>

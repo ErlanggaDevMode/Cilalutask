@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Upload, FileText, Check } from 'lucide-react';
+import { X, Upload, FileText, Plus, Trash2 } from 'lucide-react';
 import { SOPDocument } from '../../types';
 import { EMPLOYEES, CURRENT_COMPANY } from '../../data/mockData';
 
@@ -19,20 +19,65 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
   const [code, setCode] = useState('SOP-2025-OPS-05');
   const [description, setDescription] = useState('');
   const [version, setVersion] = useState('v1.0');
+  const [duration, setDuration] = useState('10 Menit Baca');
+  const [sectionHeading, setSectionHeading] = useState('Prosedur Pelaksanaan Standar');
+  const [stepItems, setStepItems] = useState<string[]>([
+    'Melakukan instruksi operasional sesuai standar ISO dan K3.',
+    'Melaporkan penyelesaian tugas kepada supervisor terkait.',
+  ]);
+  const [newStepInput, setNewStepInput] = useState('');
   const [isUrgentMandatory, setIsUrgentMandatory] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [fileSizeText, setFileSizeText] = useState<string | null>(null);
+  const [attachmentDataUrl, setAttachmentDataUrl] = useState<string | undefined>(undefined);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFileName(e.target.files[0].name);
+    setFileError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      setFileError('Ukuran berkas melebihi batas maksimal 10 MB.');
+      return;
     }
+    setFileName(file.name);
+    const sizeKb = file.size / 1024;
+    setFileSizeText(
+      sizeKb >= 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(sizeKb))} KB`
+    );
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setAttachmentDataUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddStep = () => {
+    const trimmed = newStepInput.trim();
+    if (!trimmed) return;
+    setStepItems((prev) => [...prev, trimmed]);
+    setNewStepInput('');
+  };
+
+  const handleRemoveStep = (idx: number) => {
+    setStepItems((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
+
+    const finalSteps =
+      stepItems.length > 0
+        ? stepItems
+        : [
+          description.trim() || 'Melakukan instruksi operasional sesuai standar ISO dan K3.',
+          'Melaporkan penyelesaian tugas kepada supervisor terkait.',
+        ];
 
     const newDoc: SOPDocument = {
       id: `sop-${Date.now()}`,
@@ -42,7 +87,11 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
       version: version.trim() || 'v1.0',
       description: description.trim() || 'Pedoman operasional standar.',
       lastUpdatedText: 'Baru saja diunggah',
-      fileInfo: fileName ? `${fileName} (PDF)` : 'Dokumen Digital Terbitan Internal',
+      fileInfo: fileName
+        ? `${fileName} (${fileSizeText || 'PDF'})`
+        : 'Dokumen Digital Terbitan Internal (PDF)',
+      checkPoints: `${finalSteps.length} Poin Utama`,
+      duration,
       isUrgentMandatory,
       isNewUpdate: true,
       readProgressPercent: 0,
@@ -50,15 +99,14 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
       complianceRatioText: '0% Karyawan terverifikasi',
       contentSections: [
         {
-          heading: 'Prosedur Pelaksanaan Standar',
-          items: [
-            description || 'Melakukan instruksi operasional sesuai standar ISO dan K3.',
-            'Melaporkan penyelesaian tugas kepada supervisor terkait.',
-          ],
+          heading: sectionHeading.trim() || 'Prosedur Pelaksanaan Standar',
+          items: finalSteps,
         },
       ],
-      isReadByMe: true,
+      isReadByMe: false,
       companyCode: CURRENT_COMPANY.code,
+      attachmentFileName: fileName || `${(code.trim() || 'SOP').replace(/[^A-Za-z0-9_-]/g, '_')}.pdf`,
+      attachmentDataUrl,
     };
 
     onAddSop(newDoc);
@@ -121,39 +169,59 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">Kategori Divisi</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0051D5]"
-            >
-              <option value="Operasional Gudang">Operasional Gudang</option>
-              <option value="Keamanan Kerja (K3)">Keamanan Kerja (K3)</option>
-              <option value="Customer Service">Customer Service</option>
-              <option value="Finance & HRD">Finance & HRD</option>
-              <option value="IT Department">IT Department</option>
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Kategori Divisi</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0051D5]"
+              >
+                <option value="Operasional Gudang">Operasional Gudang</option>
+                <option value="Keamanan Kerja (K3)">Keamanan Kerja (K3)</option>
+                <option value="Customer Service">Customer Service</option>
+                <option value="Finance & HRD">Finance & HRD</option>
+                <option value="IT Department">IT Department</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700">Estimasi Baca</label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-xs text-slate-800 bg-white focus:outline-none focus:ring-2 focus:ring-[#0051D5]"
+              >
+                <option value="5 Menit Baca">5 Menit Baca</option>
+                <option value="10 Menit Baca">10 Menit Baca</option>
+                <option value="15 Menit Baca">15 Menit Baca</option>
+                <option value="20 Menit Baca">20 Menit Baca</option>
+              </select>
+            </div>
           </div>
 
           {/* File Upload Drop Area */}
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700">Lampiran Berkas (PDF / DOC)</label>
+            <label className="text-xs font-bold text-slate-700">Lampiran Berkas (PDF / DOC / Gambar)</label>
             <label className="border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-[#0051D5] hover:bg-blue-50/30 transition-all text-center">
-              <Upload className="w-6 h-6 text-slate-400 mb-1.5" />
+              {fileName ? (
+                <FileText className="w-6 h-6 text-[#0051D5] mb-1.5" />
+              ) : (
+                <Upload className="w-6 h-6 text-slate-400 mb-1.5" />
+              )}
               <span className="text-xs font-semibold text-slate-700">
-                {fileName || 'Klik atau seret dokumen ke sini'}
+                {fileName ? `${fileName} (${fileSizeText})` : 'Klik untuk memilih berkas SOP (atau otomatis buat PDF)'}
               </span>
               <span className="text-[11px] text-slate-400 mt-0.5">
-                Maksimal ukuran file 10MB (PDF, DOCX)
+                Maksimal ukuran file 10MB (PDF, DOCX, TXT, PNG, JPG)
               </span>
               <input
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
                 onChange={handleFileChange}
                 className="hidden"
               />
             </label>
+            {fileError && <p className="text-[11px] font-semibold text-rose-600">{fileError}</p>}
           </div>
 
           <div className="space-y-1.5">
@@ -165,6 +233,66 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
               placeholder="Rangkuman pedoman operasional..."
               className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0051D5]"
             />
+          </div>
+
+          {/* Dynamic Steps Section */}
+          <div className="space-y-2 rounded-xl bg-slate-50 p-3 border border-slate-200/80">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-slate-700">Daftar Langkah Prosedur SOP</label>
+              <span className="text-[10px] font-bold text-[#0051D5] bg-blue-50 px-2 py-0.5 rounded-full">
+                {stepItems.length} Poin
+              </span>
+            </div>
+            <input
+              type="text"
+              value={sectionHeading}
+              onChange={(e) => setSectionHeading(e.target.value)}
+              placeholder="Judul Bagian (cth: Prosedur Pelaksanaan Standar)"
+              className="w-full px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
+            />
+            <div className="space-y-1.5 max-h-32 overflow-y-auto">
+              {stepItems.map((item, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center justify-between gap-2 bg-white px-2.5 py-1.5 rounded-lg border border-slate-200/70 text-xs text-slate-700"
+                >
+                  <span className="truncate">
+                    <strong className="text-[#0051D5] mr-1.5">{idx + 1}.</strong>
+                    {item}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveStep(idx)}
+                    className="text-slate-400 hover:text-rose-600 shrink-0"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <input
+                type="text"
+                value={newStepInput}
+                onChange={(e) => setNewStepInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddStep();
+                  }
+                }}
+                placeholder="Tambah langkah prosedur baru..."
+                className="flex-1 px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-xs text-slate-800"
+              />
+              <button
+                type="button"
+                onClick={handleAddStep}
+                className="px-2.5 py-1.5 rounded-lg bg-[#0051D5] text-white text-xs font-bold flex items-center gap-1 hover:bg-blue-700"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Tambah
+              </button>
+            </div>
           </div>
 
           {/* Urgent Mandatory Toggle */}

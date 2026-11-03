@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/assets/cilalutask_logo_data.dart';
 import '../core/theme/app_colors.dart';
 
 /// Splash screen displaying the Cilalutask logo in the center with a
@@ -37,6 +38,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
+    precacheLogoBytes();
 
     _controller = AnimationController(vsync: this, duration: widget.duration);
 
@@ -122,8 +124,18 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.sizeOf(context);
-    final logoSize = (screenSize.shortestSide * 0.58).clamp(140.0, 260.0);
-    final indicatorWidth = (logoSize * 0.72).clamp(120.0, 190.0);
+    final logoWidth = (screenSize.shortestSide * 0.72).clamp(180.0, 280.0);
+    final logoHeight = (logoWidth * (424.0 / 736.0)).clamp(104.0, 162.0);
+    final indicatorWidth = (logoWidth * 0.68).clamp(130.0, 190.0);
+
+    final predecodedLogo = Image(
+      image: kCilalutaskLogoMemoryImage,
+      width: logoWidth,
+      height: logoHeight,
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      gaplessPlayback: true,
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -154,28 +166,32 @@ class _SplashScreenState extends State<SplashScreen>
                           Semantics(
                             label: 'Logo Cilalutask',
                             image: true,
-                            child: Image.asset(
-                              'cilalutask_logo.png',
-                              key: const ValueKey('splash_logo_image'),
-                              width: logoSize,
-                              height: logoSize,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                return SizedBox(
-                                  width: logoSize,
-                                  height: logoSize,
-                                  child: const Center(
-                                    child: Icon(
-                                      Icons.task_alt_rounded,
-                                      size: 72,
-                                      color: AppColors.primary,
-                                    ),
-                                  ),
-                                );
-                              },
+                            child: SizedBox(
+                              width: logoWidth,
+                              height: logoHeight,
+                              child: Image.asset(
+                                'cilalutask_logo.png',
+                                key: const ValueKey('splash_logo_image'),
+                                width: logoWidth,
+                                height: logoHeight,
+                                fit: BoxFit.contain,
+                                gaplessPlayback: true,
+                                frameBuilder:
+                                    (
+                                      context,
+                                      child,
+                                      frame,
+                                      wasSynchronouslyLoaded,
+                                    ) {
+                                      return predecodedLogo;
+                                    },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return predecodedLogo;
+                                },
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 28),
+                          const SizedBox(height: 24),
                           SizedBox(
                             width: indicatorWidth,
                             child: Column(

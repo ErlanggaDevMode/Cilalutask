@@ -77,6 +77,8 @@ export interface SOPDocument {
   }[];
   isReadByMe?: boolean;
   companyCode?: string;
+  attachmentFileName?: string;
+  attachmentDataUrl?: string;
 }
 
 export interface EmployeePerformance {

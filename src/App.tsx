@@ -465,7 +465,7 @@ export default function App() {
 
       <ExportReportModal
         isOpen={isExportReportOpen}
-        onClose={() => setIsExportReportOpen(false)}
+        onClose={() => setIsExportReportOpen(false)} tasks={tasks} sops={sops} company={company}
       />
 
       <BroadcastModal
