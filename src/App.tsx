@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { TabType, Task, SOPDocument, Subtask, Assignee, ActivityItem } from './types';
+import { TabType, Task, SOPDocument, Subtask, Assignee, ActivityItem, Company, NotificationItem } from './types';
 import {
   INITIAL_TASKS,
   INITIAL_SOPS,
   INITIAL_ACTIVITIES,
   CURRENT_USER,
+  CURRENT_COMPANY,
+  NOTIFICATIONS_DATA,
 } from './data/mockData';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
@@ -27,10 +29,14 @@ export default function App() {
   // Navigation State
   const [currentTab, setCurrentTab] = useState<TabType>('beranda');
 
+  // Multi-Tenant Company State (DEF-13)
+  const [company, setCompany] = useState<Company>(CURRENT_COMPANY);
+
   // Core Data State
   const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS);
   const [sops, setSops] = useState<SOPDocument[]>(INITIAL_SOPS);
   const [activities, setActivities] = useState<ActivityItem[]>(INITIAL_ACTIVITIES);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(NOTIFICATIONS_DATA);
 
   // Modal States
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
@@ -218,7 +224,63 @@ export default function App() {
     showToast(`Pengumuman berhasil disiarkan ke ${targetDivision}!`);
   };
 
-  const activeReviewCount = tasks.filter((t) => t.needsReview).length || 3;
+  const handleRequestRevision = (taskId: string, revisionNotes?: string) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === taskId) {
+          const subtasks = [...t.subtasks];
+          if (subtasks.length > 0) {
+            const lastDoneIdx = subtasks.map((s) => s.completed).lastIndexOf(true);
+            if (lastDoneIdx >= 0) {
+              subtasks[lastDoneIdx] = { ...subtasks[lastDoneIdx], completed: false };
+            }
+          }
+          const compCount = subtasks.filter((s) => s.completed).length;
+          const newProgress =
+            subtasks.length > 0 ? Math.round((compCount / subtasks.length) * 100) : 50;
+          return {
+            ...t,
+            status: 'Dalam Proses',
+            needsReview: false,
+            progressPercent: newProgress,
+            subtasks,
+          };
+        }
+        return t;
+      })
+    );
+
+    const target = tasks.find((t) => t.id === taskId);
+    if (target) {
+      const newAct: ActivityItem = {
+        id: `act-${Date.now()}`,
+        userName: CURRENT_USER.name,
+        userAvatar: CURRENT_USER.avatar,
+        actionPrefix: 'meminta revisi tugas',
+        targetObject: target.title,
+        actionSuffix: revisionNotes ? `: "${revisionNotes}"` : undefined,
+        timeAgo: 'Baru saja',
+        department: target.division,
+        type: 'task',
+      };
+      setActivities((prev) => [newAct, ...prev]);
+      showToast(`Permintaan revisi tugas "${target.title}" telah dikirim!`);
+    }
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    showToast('Seluruh notifikasi telah ditandai dibaca.');
+  };
+
+  const handleMarkSingleRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+    );
+  };
+
+  const unreadNotifsCount = notifications.filter((n) => n.unread).length;
+  const activeReviewCount = tasks.filter((t) => t.needsReview).length;
 
   return (
     <div className="min-h-screen bg-[#F0F4FA] text-[#0B1C30] flex flex-col items-center justify-start antialiased py-0 sm:py-6 px-0 sm:px-4">
@@ -272,9 +334,10 @@ export default function App() {
         {/* 1. Sticky Header */}
         <Header
           currentTab={currentTab}
-          unreadNotifsCount={3}
+          unreadNotifsCount={unreadNotifsCount}
           onOpenNotifications={() => setCurrentTab('tim')}
           onOpenProfile={() => setIsProfileOpen(true)}
+          company={company}
         />
 
         {/* 2. Main Scrollable View Area */}
@@ -314,21 +377,28 @@ export default function App() {
               onOpenUploadSop={() => setIsUploadSopOpen(true)}
               onOpenSopDetail={(sop) => setSopForDetail(sop)}
               onToggleBookmark={handleToggleBookmarkSop}
+              onShowToast={showToast}
             />
           )}
 
           {currentTab === 'laporan' && (
             <ReportsScreen
+              tasks={tasks}
               onOpenExportModal={() => setIsExportReportOpen(true)}
               onBalanceWorkload={() => {
                 setCurrentTab('tugas');
                 showToast('Membuka daftar tugas untuk penyesuaian alokasi beban kerja.');
               }}
+              onShowToast={showToast}
+              onNavigateTeam={() => setCurrentTab('tim')}
             />
           )}
 
           {currentTab === 'tim' && (
             <TeamScreen
+              notifications={notifications}
+              onMarkAllRead={handleMarkAllRead}
+              onMarkSingleRead={handleMarkSingleRead}
               onOpenCreateTaskForMember={(member) => {
                 setTargetMemberForTask(member);
                 setIsCreateTaskOpen(true);
@@ -377,6 +447,7 @@ export default function App() {
         task={taskForReview}
         onClose={() => setTaskForReview(null)}
         onApproveTask={handleApproveTask}
+        onRequestRevision={handleRequestRevision}
       />
 
       <SopDetailModal
@@ -408,6 +479,7 @@ export default function App() {
         onClose={() => setIsProfileOpen(false)}
         isMobileFrame={isMobileFrame}
         onToggleFrame={() => setIsMobileFrame(!isMobileFrame)}
+        company={company}
       />
     </div>
   );

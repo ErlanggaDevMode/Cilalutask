@@ -11,27 +11,43 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { EMPLOYEES, NOTIFICATIONS_DATA, CURRENT_USER } from '../../data/mockData';
-import { Assignee } from '../../types';
+import { Assignee, NotificationItem } from '../../types';
 
 interface TeamScreenProps {
   onSelectMember?: (member: Assignee) => void;
   onOpenCreateTaskForMember?: (member: Assignee) => void;
+  notifications?: NotificationItem[];
+  onMarkAllRead?: () => void;
+  onMarkSingleRead?: (id: string) => void;
 }
 
 export const TeamScreen: React.FC<TeamScreenProps> = ({
   onOpenCreateTaskForMember,
+  notifications: externalNotifications,
+  onMarkAllRead: externalMarkAllRead,
+  onMarkSingleRead: externalMarkSingleRead,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'tim' | 'notif'>('tim');
-  const [notifications, setNotifications] = useState(NOTIFICATIONS_DATA);
+  const [localNotifications, setLocalNotifications] = useState<NotificationItem[]>(NOTIFICATIONS_DATA);
+
+  const notifications = externalNotifications ?? localNotifications;
 
   const markAllRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    if (externalMarkAllRead) {
+      externalMarkAllRead();
+    } else {
+      setLocalNotifications((prev) => prev.map((n) => ({ ...n, unread: false })));
+    }
   };
 
   const markSingleRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
-    );
+    if (externalMarkSingleRead) {
+      externalMarkSingleRead(id);
+    } else {
+      setLocalNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, unread: false } : n))
+      );
+    }
   };
 
   return (

@@ -1,12 +1,14 @@
 import React from 'react';
 import { X, ShieldCheck, Mail, Building, Smartphone, Monitor, Check } from 'lucide-react';
-import { CURRENT_USER } from '../../data/mockData';
+import { CURRENT_USER, CURRENT_COMPANY } from '../../data/mockData';
+import { Company } from '../../types';
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   isMobileFrame: boolean;
   onToggleFrame: () => void;
+  company?: Company;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
@@ -14,8 +16,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   onClose,
   isMobileFrame,
   onToggleFrame,
+  company,
 }) => {
   if (!isOpen) return null;
+  const activeCompany = company || CURRENT_COMPANY;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-xs p-0 sm:p-4">
@@ -54,6 +58,23 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 {CURRENT_USER.email}
               </p>
             </div>
+          </div>
+
+          {/* Company Context Card */}
+          <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80 space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5 text-blue-600" />
+                Perusahaan (Tenant)
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#0051D5] text-[10px] font-extrabold tracking-wider">
+                {activeCompany.code}
+              </span>
+            </div>
+            <h4 className="text-sm font-bold text-slate-900">{activeCompany.name}</h4>
+            <p className="text-xs text-slate-500">
+              {activeCompany.industry || 'Teknologi & Operasional Cloud'}
+            </p>
           </div>
 
           {/* Quick Metrics */}

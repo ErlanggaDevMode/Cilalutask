@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   TrendingUp,
   Download,
@@ -12,25 +12,105 @@ import {
   ShieldCheck,
   Star,
 } from 'lucide-react';
-import { EMPLOYEE_PERFORMANCE, DIVISION_PRODUCTIVITY } from '../../data/mockData';
+import { EMPLOYEE_PERFORMANCE, DIVISION_PRODUCTIVITY, INITIAL_TASKS } from '../../data/mockData';
+import { Task } from '../../types';
 
 interface ReportsScreenProps {
+  tasks?: Task[];
   onOpenExportModal: () => void;
   onBalanceWorkload: () => void;
+  onShowToast?: (message: string) => void;
+  onNavigateTeam?: () => void;
 }
 
 export const ReportsScreen: React.FC<ReportsScreenProps> = ({
+  tasks,
   onOpenExportModal,
   onBalanceWorkload,
+  onShowToast,
+  onNavigateTeam,
 }) => {
-  const [selectedTimeRange, setSelectedTimeRange] = useState('Bulan Ini (Mei 2025)');
+  const [selectedTimeRange, setSelectedTimeRange] = useState('Bulan Ini');
 
   const timeRanges = [
-    'Bulan Ini (Mei 2025)',
+    'Hari Ini',
     'Minggu Ini',
-    'Kuartal 1',
-    'Tahun Ini',
+    'Bulan Ini',
+    'Kuartal Ini',
   ];
+
+  const taskList = tasks || INITIAL_TASKS;
+
+  const filteredTasks = useMemo(() => {
+    switch (selectedTimeRange) {
+      case 'Hari Ini':
+        return taskList.filter(
+          (t) =>
+            t.isToday ||
+            t.deadlineLabel.toLowerCase().includes('hari ini') ||
+            t.deadlineLabel.toLowerCase().includes('tadi') ||
+            t.deadlineLabel.toLowerCase().includes('pagi')
+        );
+      case 'Minggu Ini':
+        return taskList.filter(
+          (t) =>
+            t.isToday ||
+            t.isUrgentDeadline ||
+            t.deadlineLabel.toLowerCase().includes('hari') ||
+            t.deadlineLabel.toLowerCase().includes('kemarin') ||
+            t.deadlineLabel.toLowerCase().includes('tadi')
+        );
+      case 'Bulan Ini':
+        return taskList;
+      case 'Kuartal Ini':
+      default:
+        return taskList;
+    }
+  }, [taskList, selectedTimeRange]);
+
+  const totalTasks = filteredTasks.length;
+  const completedTasks = filteredTasks.filter((t) => t.status === 'Selesai').length;
+  const completionRateNum = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+  const completionRateStr = completionRateNum.toFixed(1);
+
+  const delayedTasks = filteredTasks.filter(
+    (t) => t.isUrgentDeadline && t.status !== 'Selesai'
+  ).length;
+  const onTimeRateNum =
+    totalTasks > 0
+      ? Math.max(0, Math.min(100, Math.round(((totalTasks - delayedTasks) / totalTasks) * 100)))
+      : 100;
+  const delayedRateNum = 100 - onTimeRateNum;
+
+  const avgDurationDays = useMemo(() => {
+    switch (selectedTimeRange) {
+      case 'Hari Ini':
+        return '0.8';
+      case 'Minggu Ini':
+        return '1.4';
+      case 'Bulan Ini':
+        return '1.8';
+      case 'Kuartal Ini':
+        return '2.1';
+      default:
+        return '1.8';
+    }
+  }, [selectedTimeRange]);
+
+  const divisionStats = useMemo(() => {
+    return DIVISION_PRODUCTIVITY.map((div) => {
+      const divTasks = filteredTasks.filter((t) => t.division === div.name);
+      if (divTasks.length === 0) {
+        return div;
+      }
+      const divCompleted = divTasks.filter((t) => t.status === 'Selesai').length;
+      const pct = Math.round((divCompleted / divTasks.length) * 100);
+      return {
+        ...div,
+        percent: pct,
+      };
+    });
+  }, [filteredTasks]);
 
   return (
     <div className="space-y-4 pb-20 px-4 pt-2">
@@ -95,23 +175,25 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
         {/* Big percentage & trend */}
         <div className="flex items-baseline gap-3">
           <span className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-            92.4%
+            {completionRateStr}%
           </span>
           <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-bold">
             <TrendingUp className="w-3 h-3 stroke-[2.5]" />
-            +4.2%
+            {completedTasks} dari {totalTasks} tugas
           </span>
         </div>
 
         <p className="text-xs text-blue-200 font-normal">
-          Lebih tinggi dari rerata bulan April (88.2%)
+          {totalTasks > 0
+            ? `${completedTasks} tugas selesai dari total ${totalTasks} tugas (${selectedTimeRange})`
+            : 'Belum ada tugas pada rentang waktu ini'}
         </p>
 
         {/* Progress Bar */}
         <div className="w-full h-2 bg-blue-900/60 rounded-full overflow-hidden">
           <div
             className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full transition-all duration-500"
-            style={{ width: '92.4%' }}
+            style={{ width: `${Math.min(100, completionRateNum)}%` }}
           />
         </div>
       </div>
@@ -126,19 +208,19 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
           </div>
 
           <div className="flex items-baseline gap-1.5">
-            <span className="text-2xl font-bold tracking-tight text-slate-900">88%</span>
+            <span className="text-2xl font-bold tracking-tight text-slate-900">{onTimeRateNum}%</span>
             <span className="text-xs text-slate-500 font-medium">On-Time</span>
           </div>
 
           <p className="text-[11px] font-semibold text-rose-600 flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-            12% Terlambat
+            {delayedRateNum}% Terlambat
           </p>
 
           {/* Multi-segment Bar */}
           <div className="w-full h-1.5 bg-slate-100 rounded-full flex overflow-hidden">
-            <div className="h-full bg-[#0051D5]" style={{ width: '88%' }} />
-            <div className="h-full bg-rose-500" style={{ width: '12%' }} />
+            <div className="h-full bg-[#0051D5]" style={{ width: `${onTimeRateNum}%` }} />
+            <div className="h-full bg-rose-500" style={{ width: `${delayedRateNum}%` }} />
           </div>
         </div>
 
@@ -150,7 +232,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
           </div>
 
           <div className="flex items-baseline gap-1">
-            <span className="text-2xl font-bold tracking-tight text-slate-900">1.8</span>
+            <span className="text-2xl font-bold tracking-tight text-slate-900">{avgDurationDays}</span>
             <span className="text-sm font-bold text-slate-800">Hari</span>
           </div>
 
@@ -174,7 +256,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
               Produktivitas Divisi
             </h2>
             <p className="text-[11px] text-slate-500">
-              Rasio penyelesaian target bulanan
+              Rasio penyelesaian target ({selectedTimeRange})
             </p>
           </div>
           <BarChart3 className="w-4 h-4 text-slate-600" />
@@ -182,7 +264,7 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
 
         {/* Division Bars */}
         <div className="space-y-3 pt-1">
-          {DIVISION_PRODUCTIVITY.map((div) => (
+          {divisionStats.map((div) => (
             <div key={div.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
                 <span className="flex items-center gap-2 font-medium text-slate-700">
@@ -210,10 +292,19 @@ export const ReportsScreen: React.FC<ReportsScreenProps> = ({
               Rekap Kinerja Karyawan
             </h2>
             <span className="px-2 py-0.5 rounded-full bg-blue-50 text-[#0051D5] text-[11px] font-bold">
-              4 Anggota
+              {EMPLOYEE_PERFORMANCE.length} Anggota
             </span>
           </div>
-          <button className="text-xs font-semibold text-[#0051D5] hover:text-blue-800">
+          <button
+            onClick={() => {
+              if (onNavigateTeam) {
+                onNavigateTeam();
+              } else if (onShowToast) {
+                onShowToast('Menampilkan seluruh data rekap performa anggota.');
+              }
+            }}
+            className="text-xs font-semibold text-[#0051D5] hover:text-blue-800 active:scale-95 transition-all"
+          >
             Lihat Semua
           </button>
         </div>

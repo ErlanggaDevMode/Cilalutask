@@ -1,13 +1,23 @@
-import { Task, SOPDocument, EmployeePerformance, ActivityItem, Assignee } from '../types';
+import { Task, SOPDocument, EmployeePerformance, ActivityItem, Assignee, Company } from '../types';
 
 export const CURRENT_USER = {
   name: 'Sarah Pratama',
   role: 'Admin / Manager',
-  email: 'sarah.pratama@cilulataks.id',
+  email: 'sarah.pratama@cilalutask.id',
   avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=256',
   division: 'Operations & Strategy',
   targetQuarterPercent: 88,
   teamEfficiencyPercent: 94,
+};
+
+export const CURRENT_COMPANY: Company = {
+  id: 'comp-1',
+  name: 'PT Cilalu Sentosa',
+  code: 'CILALU-88',
+  adminName: 'Sarah Pratama',
+  adminEmail: 'sarah.pratama@cilalutask.id',
+  createdAt: '2025-01-01T00:00:00.000Z',
+  industry: 'Teknologi & Operasional Cloud',
 };
 
 export const EMPLOYEES: Assignee[] = [
@@ -18,6 +28,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
     division: 'IT & Tech',
     role: 'Lead Cloud Engineer',
+    email: 'kevin.maulana@cilalutask.id',
     hasTeamBadge: true,
     teamCount: 2,
   },
@@ -28,6 +39,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
     division: 'Pemasaran',
     role: 'Senior Content Strategist',
+    email: 'nadia.salsabila@cilalutask.id',
   },
   {
     id: 'emp-3',
@@ -36,6 +48,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=256',
     division: 'Operasional',
     role: 'Supervisor Gudang',
+    email: 'budi.santoso@cilalutask.id',
   },
   {
     id: 'emp-4',
@@ -44,6 +57,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256',
     division: 'Finance & Akuntansi',
     role: 'Tax & Compliance Officer',
+    email: 'rian.dermawan@cilalutask.id',
   },
   {
     id: 'emp-5',
@@ -52,6 +66,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=256',
     division: 'Operasional',
     role: 'Quality & Inbound Lead',
+    email: 'ahmad.fauzi@cilalutask.id',
   },
   {
     id: 'emp-6',
@@ -60,6 +75,7 @@ export const EMPLOYEES: Assignee[] = [
     avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=256',
     division: 'Pemasaran',
     role: 'Visual Designer',
+    email: 'dina.putri@cilalutask.id',
   },
 ];
 
@@ -255,9 +271,9 @@ export const INITIAL_SOPS: SOPDocument[] = [
     title: 'Penanganan Komplain Pelanggan Prioritas',
     category: 'Customer Service',
     version: 'v2.4',
-    readProgressPercent: 94,
-    complianceRatioText: '94% Karyawan sudah membaca & menyetujui',
-    readTeamCount: '32/34 Tim',
+    readProgressPercent: 83,
+    complianceRatioText: '83% Karyawan sudah membaca & menyetujui',
+    readTeamCount: '5/6 Tim',
     lastUpdatedText: 'Perbaruan: 3 Mei 2025',
     description: 'Standar penanganan tiket eskalasi pelanggan korporat Platinum dengan jaminan SLA response time di bawah 15 menit.',
     isBookmarked: false,
@@ -383,7 +399,7 @@ export const EMPLOYEE_PERFORMANCE: EmployeePerformance[] = [
     name: 'Ahmad Fauzi',
     avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&q=80&w=256',
     division: 'Operasional',
-    completedTasks: 28,
+    completedTasks: 1,
     delayedTasks: 0,
     score: 98,
     statusTag: 'SANGAT BAIK',
@@ -392,10 +408,10 @@ export const EMPLOYEE_PERFORMANCE: EmployeePerformance[] = [
   {
     id: 'perf-2',
     rank: 2,
-    name: 'Rian Dermawan',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256',
-    division: 'Finance & Akuntansi',
-    completedTasks: 22,
+    name: 'Dina Putri',
+    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=256',
+    division: 'Pemasaran',
+    completedTasks: 1,
     delayedTasks: 0,
     score: 96,
     statusTag: 'SANGAT BAIK',
@@ -403,23 +419,34 @@ export const EMPLOYEE_PERFORMANCE: EmployeePerformance[] = [
   {
     id: 'perf-3',
     rank: 3,
-    name: 'Nadia Salsabila',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
-    division: 'Pemasaran',
-    completedTasks: 24,
-    delayedTasks: 1,
-    score: 94,
+    name: 'Rian Dermawan',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=256',
+    division: 'Finance & Akuntansi',
+    completedTasks: 0,
+    delayedTasks: 0,
+    score: 92,
     statusTag: 'OPTIMAL',
   },
   {
     id: 'perf-4',
     rank: 4,
+    name: 'Nadia Salsabila',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=256',
+    division: 'Pemasaran',
+    completedTasks: 0,
+    delayedTasks: 0,
+    score: 90,
+    statusTag: 'OPTIMAL',
+  },
+  {
+    id: 'perf-5',
+    rank: 5,
     name: 'Kevin Maulana',
     avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=256',
-    division: 'IT & Development',
-    completedTasks: 19,
-    delayedTasks: 2,
-    score: 89,
+    division: 'IT & Tech',
+    completedTasks: 0,
+    delayedTasks: 0,
+    score: 88,
     statusTag: 'STABIL',
   },
 ];
@@ -427,7 +454,7 @@ export const EMPLOYEE_PERFORMANCE: EmployeePerformance[] = [
 export const DIVISION_PRODUCTIVITY = [
   { name: 'Operasional', percent: 95, colorClass: 'bg-emerald-500', textClass: 'text-emerald-500' },
   { name: 'Finance & Akuntansi', percent: 94, colorClass: 'bg-indigo-300', textClass: 'text-indigo-400' },
-  { name: 'IT & Development', percent: 91, colorClass: 'bg-blue-600', textClass: 'text-blue-600' },
+  { name: 'IT & Tech', percent: 91, colorClass: 'bg-blue-600', textClass: 'text-blue-600' },
   { name: 'Pemasaran', percent: 89, colorClass: 'bg-indigo-900', textClass: 'text-indigo-900' },
 ];
 

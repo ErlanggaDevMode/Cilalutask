@@ -7,6 +7,7 @@ interface ReviewTaskModalProps {
   isOpen: boolean;
   onClose: () => void;
   onApproveTask: (taskId: string) => void;
+  onRequestRevision?: (taskId: string, revisionNotes?: string) => void;
 }
 
 export const ReviewTaskModal: React.FC<ReviewTaskModalProps> = ({
@@ -14,8 +15,24 @@ export const ReviewTaskModal: React.FC<ReviewTaskModalProps> = ({
   isOpen,
   onClose,
   onApproveTask,
+  onRequestRevision,
 }) => {
+  const [showRevisionForm, setShowRevisionForm] = React.useState(false);
+  const [revisionNotes, setRevisionNotes] = React.useState('');
+
   if (!isOpen || !task) return null;
+
+  const handleExecuteRevision = () => {
+    if (onRequestRevision) {
+      onRequestRevision(
+        task.id,
+        revisionNotes.trim() || 'Perlu perbaikan pada kelengkapan subtask sesuai standar operasional.'
+      );
+    }
+    setShowRevisionForm(false);
+    setRevisionNotes('');
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/50 backdrop-blur-xs p-0 sm:p-4">
@@ -102,24 +119,57 @@ export const ReviewTaskModal: React.FC<ReviewTaskModalProps> = ({
           </div>
 
           {/* Actions */}
-          <div className="pt-3 grid grid-cols-2 gap-2.5">
-            <button
-              onClick={onClose}
-              className="py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
-            >
-              Minta Revisi
-            </button>
-            <button
-              onClick={() => {
-                onApproveTask(task.id);
-                onClose();
-              }}
-              className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
-            >
-              <Check className="w-4 h-4 stroke-[3]" />
-              <span>Setujui & Selesaikan</span>
-            </button>
-          </div>
+          {showRevisionForm ? (
+            <div className="pt-2 border-t border-slate-100 space-y-2.5">
+              <label className="text-xs font-bold text-slate-700 block">
+                Catatan Revisi untuk {task.assignee.name}:
+              </label>
+              <textarea
+                value={revisionNotes}
+                onChange={(e) => setRevisionNotes(e.target.value)}
+                placeholder="Tuliskan catatan perbaikan atau subtask yang belum lengkap..."
+                rows={3}
+                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0051D5]"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowRevisionForm(false)}
+                  className="py-2 rounded-xl border border-slate-200 text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExecuteRevision}
+                  className="py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs active:scale-95 transition-all"
+                >
+                  Kirim Revisi
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="pt-3 grid grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => setShowRevisionForm(true)}
+                className="py-2.5 rounded-xl border border-slate-200 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-colors"
+              >
+                Minta Revisi
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onApproveTask(task.id);
+                  onClose();
+                }}
+                className="py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/20 active:scale-95 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Check className="w-4 h-4 stroke-[3]" />
+                <span>Setujui & Selesaikan</span>
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

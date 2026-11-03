@@ -41,9 +41,9 @@ export const TasksScreen: React.FC<TasksScreenProps> = ({
   ];
 
   // Counts for tabs
-  const notStartedCount = tasks.filter((t) => t.status === 'Belum Dimulai').length || 5;
-  const inProgressCount = tasks.filter((t) => t.status === 'Dalam Proses').length || 14;
-  const completedCount = tasks.filter((t) => t.status === 'Selesai').length || 28;
+  const notStartedCount = tasks.filter((t) => t.status === 'Belum Dimulai').length;
+  const inProgressCount = tasks.filter((t) => t.status === 'Dalam Proses').length;
+  const completedCount = tasks.filter((t) => t.status === 'Selesai').length;
 
   // Filter tasks
   const filteredTasks = useMemo(() => {

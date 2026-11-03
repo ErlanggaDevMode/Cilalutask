@@ -1,6 +1,6 @@
 import React from 'react';
 import { Bell, ShieldCheck } from 'lucide-react';
-import { TabType } from '../types';
+import { TabType, Company } from '../types';
 import { CURRENT_USER } from '../data/mockData';
 
 interface HeaderProps {
@@ -8,6 +8,7 @@ interface HeaderProps {
   unreadNotifsCount: number;
   onOpenNotifications: () => void;
   onOpenProfile: () => void;
+  company?: Company;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +16,7 @@ export const Header: React.FC<HeaderProps> = ({
   unreadNotifsCount,
   onOpenNotifications,
   onOpenProfile,
+  company,
 }) => {
   const getSubTitle = () => {
     switch (currentTab) {
@@ -35,17 +37,24 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 px-4 py-2.5 flex items-center justify-between transition-all">
-      {/* Brand & Subtitle */}
+      {/* Brand & Subtitle & Company Pill */}
       <div className="flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 flex items-center justify-center text-white shadow-sm shadow-blue-500/20 ring-1 ring-blue-700/10">
           <ShieldCheck className="w-4.5 h-4.5" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[15px] font-extrabold tracking-tight text-[#00236F] leading-tight flex items-center gap-1">
-            CILULATAKS
-          </span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[15px] font-extrabold tracking-tight text-[#00236F] leading-tight">
+              CILULATAKS
+            </span>
+            {company && (
+              <span className="px-1.5 py-0.5 rounded-md bg-blue-50 border border-blue-200/80 text-[10px] font-extrabold text-[#0051D5] tracking-wide" title={company.name}>
+                {company.code}
+              </span>
+            )}
+          </div>
           <span className="text-[11px] font-medium text-slate-500 capitalize leading-none mt-0.5">
-            {getSubTitle()}
+            {getSubTitle()}{company ? ` • ${company.name}` : ''}
           </span>
         </div>
       </div>
@@ -60,7 +69,9 @@ export const Header: React.FC<HeaderProps> = ({
         >
           <Bell className="w-5 h-5" />
           {unreadNotifsCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 bg-rose-500 text-white text-[10px] font-extrabold rounded-full ring-2 ring-white flex items-center justify-center animate-pulse">
+              {unreadNotifsCount}
+            </span>
           )}
         </button>
 

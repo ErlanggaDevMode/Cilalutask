@@ -25,6 +25,7 @@ interface SopScreenProps {
   onOpenUploadSop: () => void;
   onOpenSopDetail: (sop: SOPDocument) => void;
   onToggleBookmark: (sopId: string) => void;
+  onShowToast?: (message: string) => void;
 }
 
 export const SopScreen: React.FC<SopScreenProps> = ({
@@ -32,10 +33,12 @@ export const SopScreen: React.FC<SopScreenProps> = ({
   onOpenUploadSop,
   onOpenSopDetail,
   onToggleBookmark,
+  onShowToast,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Semua');
   const [sortOrder, setSortOrder] = useState('Versi Terbaru');
+  const [showOnlyBookmarked, setShowOnlyBookmarked] = useState(false);
 
   const categories = [
     'Semua',
@@ -48,7 +51,10 @@ export const SopScreen: React.FC<SopScreenProps> = ({
 
   const filteredSops = useMemo(() => {
     return sops.filter((sop) => {
-      // Don't duplicate urgent mandatory card in the general directory list if we want clean rendering
+      if (showOnlyBookmarked && !sop.isBookmarked) {
+        return false;
+      }
+
       if (selectedCategory !== 'Semua') {
         if (!sop.category.toLowerCase().includes(selectedCategory.toLowerCase().slice(0, 5))) {
           return false;
@@ -67,9 +73,9 @@ export const SopScreen: React.FC<SopScreenProps> = ({
 
       return true;
     });
-  }, [sops, selectedCategory, searchQuery]);
+  }, [sops, selectedCategory, searchQuery, showOnlyBookmarked]);
 
-  const urgentSop = sops.find((s) => s.isUrgentMandatory) || sops[0];
+  const urgentSop = sops.find((s) => s.isUrgentMandatory);
 
   const getSopIcon = (category: string) => {
     if (category.includes('Customer Service')) {
@@ -99,12 +105,32 @@ export const SopScreen: React.FC<SopScreenProps> = ({
 
         <div className="flex items-center gap-1.5">
           <button
-            className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 flex items-center justify-center active:scale-95 transition-all shadow-xs"
+            onClick={() => {
+              const next = !showOnlyBookmarked;
+              setShowOnlyBookmarked(next);
+              if (onShowToast) {
+                onShowToast(
+                  next
+                    ? 'Menampilkan dokumen SOP yang ditandai (Bookmark)'
+                    : 'Menampilkan seluruh dokumen SOP'
+                );
+              }
+            }}
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center active:scale-95 transition-all shadow-xs ${
+              showOnlyBookmarked
+                ? 'bg-blue-50 border-blue-300 text-[#0051D5]'
+                : 'bg-white border-slate-200 text-slate-600 hover:text-blue-600'
+            }`}
             title="SOP Tersimpan"
           >
-            <Bookmark className="w-4 h-4" />
+            <Bookmark className={`w-4 h-4 ${showOnlyBookmarked ? 'fill-current' : ''}`} />
           </button>
           <button
+            onClick={() => {
+              if (onShowToast) {
+                onShowToast('Riwayat revisi SOP: Versi terbaru v1.8 & v2.0 aktif tersinkronisasi');
+              }
+            }}
             className="w-9 h-9 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-blue-600 flex items-center justify-center active:scale-95 transition-all shadow-xs"
             title="Riwayat Revisi"
           >
@@ -237,7 +263,7 @@ export const SopScreen: React.FC<SopScreenProps> = ({
               Direktori Dokumen
             </h2>
             <span className="px-2 py-0.5 rounded-full bg-blue-100 text-[#0051D5] text-[11px] font-bold">
-              14 Aktif
+              {filteredSops.length} Aktif
             </span>
           </div>
 
@@ -354,7 +380,16 @@ export const SopScreen: React.FC<SopScreenProps> = ({
 
                   <div className="flex items-center gap-2">
                     <button
-                      className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+                          navigator.clipboard.writeText(`${window.location.origin}/sop/${sop.code}`);
+                        }
+                        if (onShowToast) {
+                          onShowToast(`Tautan dokumen "${sop.code} - ${sop.title}" berhasil disalin!`);
+                        }
+                      }}
+                      className="w-8 h-8 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 hover:text-[#0051D5] transition-colors active:scale-95"
                       title="Bagikan SOP"
                     >
                       <Share2 className="w-3.5 h-3.5" />

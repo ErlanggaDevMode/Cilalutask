@@ -45,9 +45,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
   // Summary counts
   const activeCount = tasks.filter((t) => t.status === 'Dalam Proses').length;
-  const completedCount = 42; // exactly as shown in screenshot
-  const reviewCount = tasks.filter((t) => t.needsReview).length || 7;
-  const nearDeadlineCount = tasks.filter((t) => t.isUrgentDeadline).length || 3;
+  const completedCount = tasks.filter((t) => t.status === 'Selesai').length;
+  const reviewCount = tasks.filter((t) => t.needsReview).length;
+  const nearDeadlineCount = tasks.filter((t) => t.isUrgentDeadline).length;
 
   return (
     <div className="space-y-4 pb-6 px-4 pt-2">
@@ -155,7 +155,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               </div>
             </div>
             <div className="mt-2 flex items-baseline gap-2">
-              <span className="text-2xl font-bold tracking-tight text-[#0B1C30]">{activeCount || 24}</span>
+              <span className="text-2xl font-bold tracking-tight text-[#0B1C30]">{activeCount}</span>
             </div>
             <p className="mt-1 text-[11px] font-medium text-blue-600 flex items-center gap-1">
               <TrendingUp className="w-3 h-3 stroke-[2.5]" />
@@ -306,7 +306,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                     </span>
                   </div>
                   <span className="text-[11px] px-2 py-0.5 bg-slate-100 text-slate-600 rounded-md font-medium">
-                    {task.division.includes('Finance') ? 'Div. Finance' : 'Div. IT Core'}
+                    Div. {task.division}
                   </span>
                 </div>
               </div>

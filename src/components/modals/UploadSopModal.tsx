@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, FileText, Check } from 'lucide-react';
 import { SOPDocument } from '../../types';
+import { EMPLOYEES, CURRENT_COMPANY } from '../../data/mockData';
 
 interface UploadSopModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
       isUrgentMandatory,
       isNewUpdate: true,
       readProgressPercent: 0,
-      readTeamCount: '0/34 Tim',
+      readTeamCount: `0/${EMPLOYEES.length} Tim`,
       complianceRatioText: '0% Karyawan terverifikasi',
       contentSections: [
         {
@@ -57,6 +58,7 @@ export const UploadSopModal: React.FC<UploadSopModalProps> = ({
         },
       ],
       isReadByMe: true,
+      companyCode: CURRENT_COMPANY.code,
     };
 
     onAddSop(newDoc);

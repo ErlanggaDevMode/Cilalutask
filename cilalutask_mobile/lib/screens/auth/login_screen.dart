@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'package:firebase_auth/firebase_auth.dart';
-
 import '../../core/theme/app_colors.dart';
 import '../../models/company.dart';
 import '../../models/employee.dart';
@@ -54,14 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _joinRoleController = TextEditingController();
   String _selectedJoinDivision = 'IT & Engineering';
   JoinRequest? _submittedJoinRequest;
-
-  @override
-  void initState() {
-    super.initState();
-    _loginCompanyCodeController.text = 'CILALU-88';
-    _loginEmailController.text = 'sarah.pratama@cilulataks.id';
-    _loginPasswordController.text = 'password123';
-  }
 
   @override
   void dispose() {
@@ -338,7 +328,7 @@ class _LoginScreenState extends State<LoginScreen> {
             letterSpacing: 0.5,
           ),
           decoration: const InputDecoration(
-            hintText: 'Contoh: CILALU-88',
+            hintText: 'Contoh: PROPERTI-01',
             prefixIcon: Icon(
               Icons.corporate_fare_rounded,
               size: 18,
@@ -369,12 +359,12 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               _buildRoleButton(
                 role: UserRole.admin,
-                label: 'Admin (Manager)',
+                label: 'Admin',
                 icon: Icons.admin_panel_settings_rounded,
               ),
               _buildRoleButton(
                 role: UserRole.user,
-                label: 'User (Karyawan)',
+                label: 'User',
                 icon: Icons.person_rounded,
               ),
             ],
@@ -818,7 +808,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _regAdminEmailController,
                 style: const TextStyle(fontSize: 13),
                 decoration: const InputDecoration(
-                  hintText: 'admin@email.com',
+                  hintText: 'Email Anda',
                   prefixIcon: Icon(
                     Icons.email_outlined,
                     size: 16,
@@ -864,7 +854,7 @@ class _LoginScreenState extends State<LoginScreen> {
               SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Note : Sistem akan otomatis dimulai dalam kondisi Bersih (blank). Anda dapat menambahkan tugas, SOP, dan divisi secara manual.',
+                  '',
                   style: TextStyle(
                     fontSize: 11,
                     color: AppColors.textSecondary,

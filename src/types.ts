@@ -12,6 +12,16 @@ export interface Subtask {
   completed: boolean;
 }
 
+export interface Company {
+  id: string;
+  name: string;
+  code: string;
+  adminName: string;
+  adminEmail: string;
+  createdAt?: string;
+  industry?: string;
+}
+
 export interface Assignee {
   id: string;
   name: string;
@@ -19,6 +29,7 @@ export interface Assignee {
   avatar: string;
   division: string;
   role: string;
+  email?: string;
   hasTeamBadge?: boolean;
   teamCount?: number;
 }
@@ -38,6 +49,7 @@ export interface Task {
   progressPercent: number;
   updatedAt?: string;
   needsReview?: boolean;
+  companyCode?: string;
 }
 
 export interface SOPDocument {
@@ -64,6 +76,7 @@ export interface SOPDocument {
     items: string[];
   }[];
   isReadByMe?: boolean;
+  companyCode?: string;
 }
 
 export interface EmployeePerformance {
@@ -89,4 +102,13 @@ export interface ActivityItem {
   timeAgo: string;
   department: string;
   type: 'sop' | 'task';
+}
+
+export interface NotificationItem {
+  id: string;
+  title: string;
+  description: string;
+  time: string;
+  unread: boolean;
+  type: string;
 }

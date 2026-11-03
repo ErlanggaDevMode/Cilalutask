@@ -1,0 +1,242 @@
+[
+  {
+    "id": "T-DAT-01",
+    "name": "Task progress percentage matches completed subtasks count",
+    "category": "DATA_INTEGRITY",
+    "status": "PASS",
+    "expected": "All 8 tasks have progressPercent matching round(completed/total * 100)",
+    "actual": "All 8 initial tasks have mathematically consistent progressPercent"
+  },
+  {
+    "id": "T-DAT-02",
+    "name": "Assignee referential integrity between tasks and EMPLOYEES",
+    "category": "DATA_INTEGRITY",
+    "status": "PASS",
+    "expected": "All task assignees exist in EMPLOYEES list",
+    "actual": "All assignees reference valid EMPLOYEES"
+  },
+  {
+    "id": "T-DAT-03",
+    "name": "Division name consistency across types, performance, and productivity models",
+    "category": "DATA_INTEGRITY",
+    "status": "FAIL",
+    "expected": "Divisions strictly conform to DivisionType: Operasional, IT & Tech, Pemasaran, Finance & Akuntansi",
+    "actual": "Discrepancy found: EMPLOYEE_PERFORMANCE uses 'IT & Development' and DIVISION_PRODUCTIVITY uses 'IT & Development' instead of 'IT & Tech'"
+  },
+  {
+    "id": "T-DAT-04",
+    "name": "Completed tasks count reconciliation across modules",
+    "category": "DATA_INTEGRITY",
+    "status": "FAIL",
+    "expected": "Completed tasks count is reconciled and consistent across Database, Dashboard, and Leaderboard",
+    "actual": "Severe discrepancy: Database has 2 completed tasks, Beranda card hardcodes 42 completed, Leaderboard sums to 93 completed tasks"
+  },
+  {
+    "id": "T-DAT-05",
+    "name": "SOP Directory document counter reconciliation",
+    "category": "DATA_INTEGRITY",
+    "status": "FAIL",
+    "expected": "SOP Directory badge shows exact count of available SOPs (5 Aktif)",
+    "actual": "Discrepancy: SopScreen:240 displays hardcoded \"14 Aktif\" badge, but database only contains 5 SOP documents"
+  },
+  {
+    "id": "T-DAT-06",
+    "name": "Multi-tenant organization isolation and authentication boundaries in Web",
+    "category": "DATA_INTEGRITY",
+    "status": "FAIL",
+    "expected": "Web application supports company code isolation, multi-tenancy auth, or tenant boundaries matching mobile app",
+    "actual": "Web application lacks multi-tenant isolation, company code input, and session auth; runs solely on unauthenticated single-user local state"
+  },
+  {
+    "id": "T-DAT-07",
+    "name": "Employee directory headcount reconciliation between header counter and member cards",
+    "category": "DATA_INTEGRITY",
+    "status": "PASS",
+    "expected": "Header Daftar Karyawan shows exact length of EMPLOYEES array (6)",
+    "actual": "Daftar Karyawan shows (6), exactly matching 6 employee cards"
+  },
+  {
+    "id": "T-REN-01",
+    "name": "Header renders brand badge, current tab subtitle, and notification bell",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "Header renders CILULATAKS title and Beranda subtitle",
+    "actual": "Header rendered successfully with expected markers"
+  },
+  {
+    "id": "T-REN-02",
+    "name": "BottomNav renders all 5 main navigation tabs with review badge",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "BottomNav includes Beranda, Tugas, SOP, Laporan, Tim & Notif",
+    "actual": "All 5 navigation tabs rendered properly in DOM"
+  },
+  {
+    "id": "T-REN-03",
+    "name": "HomeScreen renders hero card, quick actions, workload cards, and activity stream",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "HomeScreen renders hero, workload cards, urgent tasks, and activity feed",
+    "actual": "HomeScreen rendered all sections successfully"
+  },
+  {
+    "id": "T-REN-04",
+    "name": "TasksScreen renders search bar, filters, status segmented tabs, and task cards",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "TasksScreen renders search, division pills, status tabs, and task cards",
+    "actual": "TasksScreen rendered successfully with search, tabs, and filters"
+  },
+  {
+    "id": "T-REN-05",
+    "name": "SopScreen renders knowledge base header, urgent banner, category chips, and document list",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "SopScreen renders urgent banner, category filters, and document directory",
+    "actual": "SopScreen rendered successfully"
+  },
+  {
+    "id": "T-REN-06",
+    "name": "ReportsScreen renders completion rate, sub-metrics, division bars, and employee leaderboard",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "ReportsScreen renders hero metrics, division bars, and ranking",
+    "actual": "ReportsScreen rendered successfully with all analytics widgets"
+  },
+  {
+    "id": "T-REN-07",
+    "name": "TeamScreen renders manager profile and employee directory with quick action buttons",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "TeamScreen renders manager card and 6 employee cards",
+    "actual": "TeamScreen rendered successfully with manager profile and 6 employee items"
+  },
+  {
+    "id": "T-REN-08",
+    "name": "All 8 modal dialogs render expected form controls and backdrop shells",
+    "category": "COMPONENT_RENDER",
+    "status": "PASS",
+    "expected": "All 8 modal components render markup without error",
+    "actual": "All 8 modals rendered successfully"
+  },
+  {
+    "id": "T-WFL-01",
+    "name": "Create Task workflow adds task to task list and updates workload metrics",
+    "category": "WORKFLOW",
+    "status": "PASS",
+    "expected": "Task list increases by 1 with valid properties",
+    "actual": "Successfully appended task (total: 9)"
+  },
+  {
+    "id": "T-WFL-02",
+    "name": "Subtask progress recalculation and auto-completion transition to Selesai",
+    "category": "WORKFLOW",
+    "status": "PASS",
+    "expected": "When all subtasks are checked, progress becomes 100% and status transitions to Selesai",
+    "actual": "Calculated progress: 100%, new status: Selesai"
+  },
+  {
+    "id": "T-WFL-03",
+    "name": "Review task approval clears needsReview, sets status Selesai, and marks subtasks complete",
+    "category": "WORKFLOW",
+    "status": "PASS",
+    "expected": "Task approved: needsReview=false, status=Selesai, progress=100%",
+    "actual": "Task approved and state updated as expected"
+  },
+  {
+    "id": "T-WFL-04",
+    "name": "SOP digital sign-off marks document as read and clears urgent mandatory status",
+    "category": "WORKFLOW",
+    "status": "PASS",
+    "expected": "SOP sign-off sets isReadByMe=true and isUrgentMandatory=false",
+    "actual": "SOP signed off successfully"
+  },
+  {
+    "id": "T-BUG-01",
+    "name": "HomeScreen:309 division label ternary bug mislabels Operasional task as Div. IT Core",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Approaching deadline task with division Operasional displays Div. Operasional",
+    "actual": "Defect confirmed: HomeScreen:309 uses ternary condition `{task.division.includes('Finance') ? 'Div. Finance' : 'Div. IT Core'}` which forces 'Operasional' tasks to display as 'Div. IT Core'"
+  },
+  {
+    "id": "T-BUG-02",
+    "name": "HomeScreen:158 zero count fallback || 24 displays false metric when activeCount is 0",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "When active task count is 0, summary card displays 0",
+    "actual": "Defect confirmed: JavaScript truthy fallback `{activeCount || 24}` evaluates 0 to 24, displaying 24 active tasks when 0 exist"
+  },
+  {
+    "id": "T-BUG-03",
+    "name": "HomeScreen:48 hardcoded completed tasks count of 42 ignores actual task status",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Completed tasks card reflects actual tasks with status Selesai",
+    "actual": "Defect confirmed: HomeScreen:48 explicitly hardcodes `const completedCount = 42; // exactly as shown in screenshot` regardless of actual database state"
+  },
+  {
+    "id": "T-BUG-04",
+    "name": "TasksScreen:44-46 falsy fallbacks display 5, 14, 28 when counts are 0",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "When status counts are 0, tabs display badges with 0",
+    "actual": "Defect confirmed: TasksScreen:44-46 uses `|| 5`, `|| 14`, `|| 28` which corrupts tab counts when lists are empty"
+  },
+  {
+    "id": "T-BUG-05",
+    "name": "App.tsx:275 unlinked header notification badge hardcodes unread count to 3",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Header notification badge is bound to notification state and clears when marked read",
+    "actual": "Defect confirmed: Header unreadNotifsCount is hardcoded to literal 3 in App.tsx:275 while TeamScreen manages a disconnected local state"
+  },
+  {
+    "id": "T-BUG-06",
+    "name": "SopScreen:72 urgent SOP alert card persists with sops[0] even when no urgent SOP exists",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "When no SOP is marked isUrgentMandatory, the red urgent banner should be hidden",
+    "actual": "Defect confirmed: SopScreen:72 uses fallback `|| sops[0]`, permanently displaying red 'WAJIB DIBACA' banner for SOP-2025-OPS-04 even after sign-off"
+  },
+  {
+    "id": "T-BUG-07",
+    "name": "Inert interactive elements lacking onClick event handlers",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Interactive buttons have working click handlers or disabled state styling",
+    "actual": "Defect confirmed: 'Lihat Semua' (ReportsScreen:217), 'Bagikan' (SopScreen:335), and Bookmark/History buttons (SopScreen:43, 51) have no onClick handlers"
+  },
+  {
+    "id": "T-BUG-08",
+    "name": "ReviewTaskModal \"Minta Revisi\" button acts purely as modal dismiss without status change",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Clicking 'Minta Revisi' updates task status to 'Revisi' or dispatches feedback notes",
+    "actual": "Defect confirmed: 'Minta Revisi' only calls `onClose()` in ReviewTaskModal:107; does not record revision feedback or modify task state"
+  },
+  {
+    "id": "T-BUG-09",
+    "name": "ReportsScreen time range filter does not update analytics metrics or division percentages",
+    "category": "BUG_VERIFICATION",
+    "status": "FAIL",
+    "expected": "Selecting Minggu Ini or Kuartal 1 recalculates completion rate, average duration, and division metrics",
+    "actual": "Defect confirmed: Clicking time range buttons updates selectedTimeRange local state but leaves all displayed metrics (92.4%, 88%, 1.8 Hari, division bars) static and unchanged"
+  },
+  {
+    "id": "T-SRV-01",
+    "name": "Port 56855 live web server responds with HTTP 200 and serves Flutter Web application",
+    "category": "AUTOMATED_BUILD",
+    "status": "PASS",
+    "expected": "HTTP 200 serving cilalutask_mobile entry point",
+    "actual": "HTTP 200, Content-Type: text/html; charset=utf-8, Title: cilalutask_mobile"
+  },
+  {
+    "id": "T-SRV-02",
+    "name": "Port 3000 live Vite web server responds with HTTP 200 and serves React SPA production bundle",
+    "category": "AUTOMATED_BUILD",
+    "status": "PASS",
+    "expected": "HTTP 200 serving React SPA bundle with root mounting point",
+    "actual": "HTTP 200, Content-Type: text/html, Root div present: true"
+  }
+]
